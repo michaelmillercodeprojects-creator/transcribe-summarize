@@ -1,5 +1,7 @@
 # Transcribe-Summarize
 
+[![CI](https://github.com/michaelmillercodeprojects-creator/transcribe-summarize/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelmillercodeprojects-creator/transcribe-summarize/actions/workflows/ci.yml)
+
 A command-line tool to transcribe audio/video content and generate summaries using OpenAI's APIs.
 
 ## Features
@@ -47,7 +49,7 @@ pip install transcribe-summarize
 
 Or install from source:
 ```bash
-git clone https://github.com/yourusername/transcribe-summarize.git
+git clone https://github.com/michaelmillercodeprojects-creator/transcribe-summarize.git
 cd transcribe-summarize
 pip install -e .
 ```
