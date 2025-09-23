@@ -1,5 +1,36 @@
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
 .env
 .env.*
+.venv/
+
+# IDE settings
 .vscode/
+.idea/
+
+# Local development
+*.log
+.DS_Store
+api_key
+
+# Audio/video files and output
+audio/*
+!audio/.gitkeep
+output/*
+!output/.gitkeep
+
+# Keep example files
+!audio/test.mp3
+!output/audiotest.mp3_transcript.txt
+!output/audiotest.mp3_summary.txt
