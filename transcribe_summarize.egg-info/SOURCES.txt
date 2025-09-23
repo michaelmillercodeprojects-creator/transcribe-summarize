@@ -1,0 +1,16 @@
+LICENSE
+README.md
+pyproject.toml
+setup.cfg
+setup.py
+tests/test_utils.py
+transcribe_summarize/__init__.py
+transcribe_summarize/chunked_audio.py
+transcribe_summarize/transcribe_summarize.py
+transcribe_summarize/utils.py
+transcribe_summarize.egg-info/PKG-INFO
+transcribe_summarize.egg-info/SOURCES.txt
+transcribe_summarize.egg-info/dependency_links.txt
+transcribe_summarize.egg-info/entry_points.txt
+transcribe_summarize.egg-info/requires.txt
+transcribe_summarize.egg-info/top_level.txt

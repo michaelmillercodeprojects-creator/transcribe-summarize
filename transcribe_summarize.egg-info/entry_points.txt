@@ -1,0 +1,2 @@
+[console_scripts]
+transcribe-summarize = src.transcribe_summarize:main
