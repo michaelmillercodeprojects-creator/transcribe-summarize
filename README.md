@@ -1,51 +1,77 @@
 # 🎯 Financial Email Transcription Suite
 
-**Professional desktop application for automatically transcribing and analyzing financial audio content from emails, URLs, and files.**
+Transform financial audio content into actionable investment insights with AI-powered analysis.
 
-Transform webinars, earnings calls, and financial presentations into actionable investment insights with AI-powered analysis. No technical knowledge required - just double-click to start!
+## 🚀 Quick Start
 
-## 🚀 **Quick Start - Just Double-Click!**
+**Double-click `run_app.py` to launch the GUI application!**
 
-### **Option 1: One-Click Launch (Easiest!)**
+Or run manually:
+```bash
+python3 financial_transcribe_gui.py
 ```
-📂 Double-click: run_app.py
+
+## 🎛️ Features
+
+### GUI Application
+- **Email Automation** - Monitor emails for webinar links
+- **File Processing** - Drag & drop audio/video files  
+- **URL Processing** - YouTube, Dropbox, Google Drive, Zoom
+- **Real-Time Logging** - Watch processing live
+- **Settings Management** - Configure email and intervals
+
+### Financial Analysis
+- **AI-Powered Transcription** - OpenAI Whisper
+- **Investment Insights** - GPT-4 analysis focused on macro themes
+- **Professional Reports** - Clean, actionable summaries
+- **Email Reports** - HTML-formatted analysis sent back
+
+## 📋 Setup
+
+### 1. Install Dependencies
+```bash
+pip install openai python-dotenv requests yt-dlp beautifulsoup4 tkinter
 ```
-**Works on all systems** - automatically finds Python and launches the GUI!
 
-### **Option 2: Platform-Specific Launchers**
-- **Windows**: Double-click `launch_gui.bat`
-- **Mac/Linux**: Double-click `launch_gui.sh`
+### 2. Configure API Key
+Create `.env` file:
+```
+OPENAI_API_KEY=your_key_here
+```
 
-**✨ No Python setup required - launchers handle everything!**
+### 3. Optional: Email Integration
+Add to `.env`:
+```
+EMAIL_ADDRESS=your_email@gmail.com
+EMAIL_PASSWORD=your_app_password
+```
 
----
+## 🎵 Usage
 
-## 🎛️ **GUI Application Features**
+### GUI Mode (Recommended)
+```bash
+python3 run_app.py
+```
 
-### **📧 Email Automation**
-- **Intelligent Webinar Detection** - Finds audio/video content in emails automatically
-- **Corporate Security URLs** - Unwraps Microsoft Defender, Proofpoint links
-- **Marketing Link Following** - Processes redirect chains to find actual media
-- **24/7 Monitoring** - Continuously checks for new content
-- **Professional Reports** - HTML-formatted analysis sent back via email
+### Command Line
+```bash
+# Process local file
+python3 transcribe_financial.py --input audio.mp3
 
-### **🎯 Manual Processing Tools**
-- **File Processing** - Drag & drop audio/video files
-- **URL Processing** - YouTube, Dropbox, Google Drive, Zoom recordings
-- **Real-Time Logging** - Watch processing happen live
-- **Output Management** - Easy access to generated reports
+# Process URL  
+python3 transcribe_financial.py --input "https://youtube.com/watch?v=..."
 
-### **⚙️ Smart Configuration**
-- **Auto-Save Settings** - Remembers your preferences
-- **Flexible Intervals** - Set custom email check frequency
-- **Auto-Start Option** - Launch with service running
-- **Dependency Checking** - Verifies all components work
+# Email monitoring
+python3 email_transcribe_financial.py
+```
 
----
+## 🔑 Requirements
 
-## 📊 **What You Get**
+- **Python 3.7+**
+- **OpenAI API Key** (~$0.006 per minute of audio)
+- **tkinter** (usually included with Python)
 
-### **📈 Financial Analysis Engine**
+**Simple, focused, and effective for financial audio analysis.** 📈
 ```
 MACRO INVESTMENT THEMES
 • Federal Reserve policy shift indicating potential rate cuts in Q2
