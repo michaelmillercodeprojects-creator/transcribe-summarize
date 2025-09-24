@@ -231,3 +231,4 @@ Financial-Transcription-Suite/
 **Transform your financial audio into actionable insights - no technical knowledge required!** 🚀
 
 **Just double-click `run_app.py` and start processing financial content immediately.**
+# This triggers a fresh CI run with the fixed workflow
