@@ -33,21 +33,21 @@ jobs:
     
     - name: Validate Python modules
       run: |
-        python -c "import transcribe_financial; print('✅ transcribe_financial')"
-        python -c "import email_transcribe_financial; print('✅ email_transcribe_financial')" 
+        python -c "import transcribe_financial; print('PASS: transcribe_financial')"
+        python -c "import email_transcribe_financial; print('PASS: email_transcribe_financial')" 
         python -c "try:
             import financial_transcribe_gui
-            print('✅ financial_transcribe_gui (GUI module loaded)')
+            print('PASS: financial_transcribe_gui (GUI module loaded)')
         except Exception as e:
             if 'DISPLAY' in str(e) or 'no display' in str(e).lower():
-                print('✅ financial_transcribe_gui (GUI unavailable in headless - expected)')
+                print('PASS: financial_transcribe_gui (GUI unavailable in headless - expected)')
             else:
                 raise e"
-        echo "🎉 All core modules validated successfully!"
+        echo "All core modules validated successfully!"
     
     - name: Check syntax
       run: |
         python -m py_compile transcribe_financial.py
         python -m py_compile email_transcribe_financial.py  
         python -m py_compile run_app.py
-        echo "✅ All Python files have valid syntax"
+        echo "All Python files have valid syntax"
