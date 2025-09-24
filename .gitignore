@@ -1,36 +1,33 @@
-# Byte-compiled / optimized / DLL files
+# Environment and API keys
+.env
+.env.*
+api_key
+
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-
-# Virtual environments
+# Virtual environments  
 venv/
-env/
-.env
-.env.*
 .venv/
+env/
 
 # IDE settings
 .vscode/
 .idea/
 
-# Local development
+# System files
 *.log
 .DS_Store
-api_key
+Thumbs.db
 
-# Audio/video files and output
+# Audio/video files and processing output
 audio/*
 !audio/.gitkeep
 output/*
 !output/.gitkeep
 
-# Keep example files
-!audio/test.mp3
-!output/audiotest.mp3_transcript.txt
-!output/audiotest.mp3_summary.txt
+# Temporary files
+*.tmp
+*.temp
