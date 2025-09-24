@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Financial Email Transcription - GUI Application
-Optimized desktop application for monitoring and transcribing financial webinars from email
+Financial Audio Transcription - GUI Application
+Desktop application for transcribing financial audio/video content
 """
 
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox, filedialog, simpledialog
+from tkinter import ttk, scrolledtext, messagebox, filedialog
 import threading
 import queue
 import subprocess
@@ -18,15 +18,12 @@ import time
 class FinancialTranscribeGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Financial Email Transcription Service")
+        self.root.title("Financial Audio Transcription Suite")
         self.root.geometry("800x600")
         self.root.minsize(600, 400)
         
         # Queue for thread communication
         self.log_queue = queue.Queue()
-        self.service_process = None
-        self.is_running = False
-        self.service_thread = None
         
         # Load configuration
         self.config_file = "gui_config.json"
@@ -41,7 +38,6 @@ class FinancialTranscribeGUI:
         
         self.create_widgets()
         self.setup_menu()
-        self.check_dependencies_silent()
         
         # Start log queue checking
         self.root.after(100, self.process_log_queue)
@@ -50,8 +46,7 @@ class FinancialTranscribeGUI:
         """Load GUI configuration from file"""
         default_config = {
             "output_email": "",
-            "check_interval": 300,
-            "auto_start": False,
+            "send_email": False,
             "window_geometry": "800x600",
             "openai_api_key": "",
             "email_address": "",
@@ -88,42 +83,28 @@ class FinancialTranscribeGUI:
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Title
-        title_label = ttk.Label(main_frame, text="Financial Email Transcription Service", 
+        title_label = ttk.Label(main_frame, text="Financial Audio Transcription Suite", 
                                font=('Arial', 16, 'bold'))
         title_label.pack(pady=(0, 20))
         
-        # Control Panel
-        control_frame = ttk.LabelFrame(main_frame, text="Service Control", padding=10)
-        control_frame.pack(fill=tk.X, pady=(0, 10))
+        # Processing Panel
+        processing_frame = ttk.LabelFrame(main_frame, text="Process Audio/Video", padding=10)
+        processing_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Status
-        status_frame = ttk.Frame(control_frame)
-        status_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        ttk.Label(status_frame, text="Status:").pack(side=tk.LEFT)
-        self.status_label = ttk.Label(status_frame, text="Stopped", foreground="red")
-        self.status_label.pack(side=tk.LEFT, padx=(5, 0))
-        
-        # Control buttons
-        button_frame = ttk.Frame(control_frame)
+        # Processing buttons
+        button_frame = ttk.Frame(processing_frame)
         button_frame.pack(fill=tk.X)
         
-        self.start_btn = ttk.Button(button_frame, text="Start Service", 
-                                   command=self.start_service)
-        self.start_btn.pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="Process File", 
+                  command=self.process_file).pack(side=tk.LEFT, padx=(0, 10))
         
-        self.stop_btn = ttk.Button(button_frame, text="Stop Service", 
-                                  command=self.stop_service, state=tk.DISABLED)
-        self.stop_btn.pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(button_frame, text="Process URL", 
+                  command=self.process_url).pack(side=tk.LEFT, padx=(0, 10))
         
-        self.restart_btn = ttk.Button(button_frame, text="Restart", 
-                                     command=self.restart_service, state=tk.DISABLED)
-        self.restart_btn.pack(side=tk.LEFT, padx=(0, 5))
-        
-        # Test button
-        self.test_btn = ttk.Button(button_frame, text="Test Once", 
-                                  command=self.test_once)
-        self.test_btn.pack(side=tk.LEFT, padx=(20, 0))
+        # Email toggle
+        self.send_email_var = tk.BooleanVar(value=self.config.get("send_email", False))
+        ttk.Checkbutton(button_frame, text="Send results via email", 
+                       variable=self.send_email_var).pack(side=tk.RIGHT)
         
         # Settings Panel
         settings_frame = ttk.LabelFrame(main_frame, text="Settings", padding=10)
@@ -195,25 +176,14 @@ class FinancialTranscribeGUI:
         general_frame = ttk.Frame(settings_notebook)
         settings_notebook.add(general_frame, text="General")
         
-        # Check interval row
-        interval_frame = ttk.Frame(general_frame)
-        interval_frame.pack(fill=tk.X, pady=(10, 8))
+        # Email sending option
+        email_option_frame = ttk.Frame(general_frame)
+        email_option_frame.pack(fill=tk.X, pady=(10, 8))
         
-        ttk.Label(interval_frame, text="Check Interval (sec):", width=20).pack(side=tk.LEFT)
-        self.interval_var = tk.StringVar(value=str(self.config.get("check_interval", 300)))
-        interval_spin = ttk.Spinbox(interval_frame, from_=60, to=3600, 
-                                   textvariable=self.interval_var, width=10)
-        interval_spin.pack(side=tk.LEFT, padx=(5, 0))
-        
-        # Options frame (in general tab)
-        options_frame = ttk.Frame(general_frame)
-        options_frame.pack(fill=tk.X, pady=(10, 8))
-        
-        # Auto-start checkbox
-        self.auto_start_var = tk.BooleanVar(value=self.config.get("auto_start", False))
-        auto_start_cb = ttk.Checkbutton(options_frame, text="Auto-start service on launch", 
-                                       variable=self.auto_start_var)
-        auto_start_cb.pack(anchor=tk.W)
+        ttk.Label(email_option_frame, text="Default email behavior:").pack(anchor=tk.W, pady=(0, 5))
+        self.default_send_email_var = tk.BooleanVar(value=self.config.get("send_email", False))
+        ttk.Checkbutton(email_option_frame, text="Send results via email by default", 
+                       variable=self.default_send_email_var).pack(anchor=tk.W)
         
         # Save settings button (spans both tabs)
         save_settings_frame = ttk.Frame(settings_frame)
@@ -251,11 +221,10 @@ class FinancialTranscribeGUI:
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
         
         # Initial log message
-        self.log_message("Financial Email Transcription Service GUI started")
+        self.log_message("Financial Audio Transcription Suite started")
         
-        # Auto-start if enabled
-        if self.config.get("auto_start", False):
-            self.root.after(1000, self.start_service)  # Delay to ensure GUI is ready
+        # Set email toggle to saved default
+        self.send_email_var.set(self.config.get("send_email", False))
     
     def setup_menu(self):
         """Create the menu bar"""
@@ -281,7 +250,6 @@ class FinancialTranscribeGUI:
         help_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Help", menu=help_menu)
         help_menu.add_command(label="About", command=self.show_about)
-        help_menu.add_command(label="Documentation", command=self.show_docs)
     
     def log_message(self, message):
         """Add message to log with timestamp"""
@@ -305,163 +273,11 @@ class FinancialTranscribeGUI:
         # Schedule next check
         self.root.after(100, self.process_log_queue)
     
-    def start_service(self):
-        """Start the email monitoring service"""
-        if self.is_running:
-            self.log_message("Service is already running")
-            return
-        
-        try:
-            # Start the service in a separate thread
-            self.service_thread = threading.Thread(target=self.run_service, daemon=True)
-            self.service_thread.start()
-            
-            self.is_running = True
-            self.status_label.config(text="Running", foreground="green")
-            self.start_btn.config(state=tk.DISABLED)
-            self.stop_btn.config(state=tk.NORMAL)
-            self.restart_btn.config(state=tk.NORMAL)
-            
-            self.log_message("Service started successfully")
-            
-        except Exception as e:
-            self.log_message(f"Error starting service: {e}")
-            messagebox.showerror("Error", f"Failed to start service: {e}")
-    
-    def stop_service(self):
-        """Stop the email monitoring service"""
-        if not self.is_running:
-            self.log_message("Service is not running")
-            return
-        
-        try:
-            self.is_running = False  # Set flag first to stop read loop
-            
-            if self.service_process:
-                try:
-                    # Try graceful termination first
-                    self.service_process.terminate()
-                    
-                    # Wait briefly for graceful shutdown
-                    try:
-                        self.service_process.wait(timeout=3)
-                    except subprocess.TimeoutExpired:
-                        # Force kill if still running
-                        self.service_process.kill()
-                        self.service_process.wait()
-                        
-                except (ProcessLookupError, OSError):
-                    pass  # Process already ended
-                
-                self.service_process = None
-            
-            # Update UI
-            self.status_label.config(text="Stopped", foreground="red")
-            self.start_btn.config(state=tk.NORMAL)
-            self.stop_btn.config(state=tk.DISABLED)
-            self.restart_btn.config(state=tk.DISABLED)
-            
-            self.log_message("Service stopped")
-            
-        except Exception as e:
-            self.log_message(f"Error stopping service: {e}")
-    
-    def restart_service(self):
-        """Restart the service"""
-        self.log_message("Restarting service...")
-        self.stop_service()
-        self.root.after(2000, self.start_service)  # Wait 2 seconds before restart
-    
-    def run_service(self):
-        """Run the email service (in separate thread)"""
-        try:
-            # Check if email script exists
-            if not os.path.exists("email_transcribe_financial.py"):
-                self.log_message("ERROR: email_transcribe_financial.py not found")
-                self.root.after(0, self.stop_service)
-                return
-            
-            # Build command with interval setting
-            interval = self.config.get("check_interval", 300)
-            cmd = [sys.executable, "email_transcribe_financial.py", "--interval", str(interval)]
-            
-            self.log_message(f"Starting email service with {interval}s interval...")
-            
-            self.service_process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                universal_newlines=True,
-                bufsize=1,
-                cwd=os.getcwd()
-            )
-            
-            # Read output line by line
-            for line in iter(self.service_process.stdout.readline, ''):
-                if not self.is_running:  # Service was stopped
-                    break
-                    
-                if line:
-                    line = line.strip()
-                    if line:  # Only log non-empty lines
-                        self.log_message(line)
-                
-                # Check if process was terminated
-                if self.service_process.poll() is not None:
-                    break
-            
-            # Process ended
-            if self.is_running:
-                return_code = self.service_process.returncode
-                self.log_message(f"Service process ended (exit code: {return_code})")
-                self.root.after(0, self.stop_service)
-                
-        except FileNotFoundError:
-            self.log_message("ERROR: Python or email script not found")
-            self.root.after(0, self.stop_service)
-        except Exception as e:
-            self.log_message(f"Service error: {e}")
-            self.root.after(0, self.stop_service)
-    
-    def test_once(self):
-        """Run a single test check"""
-        def run_test():
-            try:
-                self.log_message("Running single test check...")
-                result = subprocess.run(
-                    [sys.executable, "email_transcribe_financial.py", "--once"],
-                    capture_output=True,
-                    text=True,
-                    timeout=300  # 5 minute timeout
-                )
-                
-                if result.stdout:
-                    for line in result.stdout.split('\n'):
-                        if line.strip():
-                            self.log_message(f"TEST: {line}")
-                
-                if result.stderr:
-                    for line in result.stderr.split('\n'):
-                        if line.strip():
-                            self.log_message(f"ERROR: {line}")
-                
-                self.log_message("Test completed")
-                
-            except subprocess.TimeoutExpired:
-                self.log_message("Test timed out after 5 minutes")
-            except Exception as e:
-                self.log_message(f"Test error: {e}")
-        
-        # Run test in separate thread
-        test_thread = threading.Thread(target=run_test, daemon=True)
-        test_thread.start()
-    
     def save_settings(self):
         """Save current settings"""
         try:
             self.config["output_email"] = self.output_email_var.get()
-            self.config["check_interval"] = int(self.interval_var.get())
-            self.config["auto_start"] = self.auto_start_var.get()
+            self.config["send_email"] = self.default_send_email_var.get()
             self.config["openai_api_key"] = self.api_key_var.get()
             self.config["email_address"] = self.email_address_var.get()
             self.config["email_password"] = self.email_password_var.get()
@@ -473,8 +289,6 @@ class FinancialTranscribeGUI:
             self.log_message("Settings saved to GUI config and .env file")
             messagebox.showinfo("Settings", "Settings saved successfully!")
             
-        except ValueError:
-            messagebox.showerror("Error", "Invalid check interval value")
         except Exception as e:
             self.log_message(f"Error saving settings: {e}")
             messagebox.showerror("Error", f"Failed to save settings: {e}")
@@ -643,9 +457,13 @@ Configuration:
                     
                     self.log_message(f"Processing file: {os.path.basename(filename)}")
                     
-                    # Use correct command line arguments
+                    # Build command with email option if enabled
+                    cmd = [sys.executable, "transcribe_financial.py", "--input", filename]
+                    if self.send_email_var.get() and self.config.get("output_email"):
+                        cmd.extend(["--email", self.config.get("output_email")])
+                    
                     result = subprocess.run(
-                        [sys.executable, "transcribe_financial.py", "--input", filename],
+                        cmd,
                         capture_output=True,
                         text=True,
                         timeout=1800  # 30 minute timeout
@@ -704,13 +522,14 @@ Configuration:
         def cancel_clicked():
             dialog.destroy()
         
-        tk.Button(button_frame, text="Process", command=ok_clicked, width=10).pack(side=tk.LEFT, padx=5)
-        tk.Button(button_frame, text="Cancel", command=cancel_clicked, width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_frame, text="OK", command=ok_clicked).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(button_frame, text="Cancel", command=cancel_clicked).pack(side=tk.LEFT)
         
-        # Handle Enter key
+        # Enter key submits
         url_entry.bind('<Return>', lambda e: ok_clicked())
         
-        dialog.wait_window()
+        # Wait for dialog to close
+        self.root.wait_window(dialog)
         
         url = result['url']
         if url:
@@ -722,9 +541,13 @@ Configuration:
                     
                     self.log_message(f"Processing URL: {url}")
                     
-                    # Use correct command line arguments
+                    # Build command with email option if enabled
+                    cmd = [sys.executable, "transcribe_financial.py", "--input", url]
+                    if self.send_email_var.get() and self.config.get("output_email"):
+                        cmd.extend(["--email", self.config.get("output_email")])
+                    
                     result = subprocess.run(
-                        [sys.executable, "transcribe_financial.py", "--input", url],
+                        cmd,
                         capture_output=True,
                         text=True,
                         timeout=1800  # 30 minute timeout
@@ -753,153 +576,87 @@ Configuration:
             # Run in separate thread
             threading.Thread(target=run_process, daemon=True).start()
     
-    def check_dependencies_silent(self):
-        """Silently check dependencies on startup"""
-        missing = []
-        if not os.path.exists("email_transcribe_financial.py"):
-            missing.append("email_transcribe_financial.py")
-        if not os.path.exists("transcribe_financial.py"):
-            missing.append("transcribe_financial.py")
-        
-        if missing:
-            self.log_message(f"⚠️ Missing files: {', '.join(missing)}")
-        else:
-            self.log_message("✅ All required files found")
-    
     def check_dependencies(self):
-        """Check if all dependencies are installed (verbose)"""
-        dependencies = [
-            ("Python", sys.executable, "✅"),
-            ("email_transcribe_financial.py", "email_transcribe_financial.py", None),
-            ("transcribe_financial.py", "transcribe_financial.py", None),
-            ("Output folder", "output", None)
-        ]
-        
-        results = []
-        missing = []
-        
-        for name, path, status in dependencies:
-            if name == "Python":
-                results.append(f"✅ {name}: {sys.version.split()[0]}")
-            elif name == "Output folder":
-                if os.path.exists(path):
-                    results.append(f"✅ {name}: exists")
-                else:
-                    results.append(f"ℹ️ {name}: will be created when needed")
-            elif os.path.exists(path):
-                results.append(f"✅ {name}: found")
+        """Check if all required dependencies are available"""
+        def run_check():
+            missing_deps = []
+            available_deps = []
+            problems = []
+            
+            # Check Python packages
+            deps = ["openai", "yt-dlp", "requests", "beautifulsoup4"]
+            for dep in deps:
+                try:
+                    result = subprocess.run([sys.executable, "-c", f"import {dep}"], 
+                                          capture_output=True)
+                    if result.returncode == 0:
+                        available_deps.append(dep)
+                    else:
+                        missing_deps.append(dep)
+                        problems.append(f"MISSING: {dep}: not installed")
+                except Exception:
+                    missing_deps.append(dep)
+                    problems.append(f"MISSING: {dep}: not installed")
+            
+            # Additional checks
+            try:
+                import tkinter
+                available_deps.append("tkinter")
+            except ImportError:
+                missing_deps.append("tkinter")
+                problems.append("MISSING: tkinter: not available (install python3-tk)")
+            
+            # Show results
+            if missing_deps:
+                result_text = f"Missing Dependencies ({len(missing_deps)}):\\n\\n"
+                result_text += "\\n".join(problems)
+                if available_deps:
+                    result_text += f"\\n\\nAvailable ({len(available_deps)}): {', '.join(available_deps)}"
+                result_text += "\\n\\nInstall missing dependencies with:\\npip install " + " ".join(missing_deps)
+                messagebox.showwarning("Dependencies Check", result_text)
             else:
-                results.append(f"❌ {name}: missing")
-                missing.append(name)
+                result_text = f"All dependencies available ({len(available_deps)}):\\n\\n"
+                result_text += "\\n".join([f"• {dep}" for dep in available_deps])
+                messagebox.showinfo("Dependencies Check", result_text)
         
-        result_text = "\n".join(results)
-        
-        if missing:
-            msg = f"Dependency Check Results:\n\n{result_text}\n\nMissing: {', '.join(missing)}"
-            self.log_message(f"Missing dependencies: {', '.join(missing)}")
-            messagebox.showwarning("Dependencies", msg)
-        else:
-            msg = f"Dependency Check Results:\n\n{result_text}\n\n✅ All dependencies satisfied!"
-            self.log_message("All dependencies found")
-            messagebox.showinfo("Dependencies", msg)
+        # Run check in separate thread
+        threading.Thread(target=run_check, daemon=True).start()
     
     def show_about(self):
         """Show about dialog"""
-        about_text = """Financial Email Transcription Service
-        
-Version 1.0
-        
-A desktop application for automatically monitoring emails 
-and transcribing financial webinars and audio content.
+        about_text = """Financial Audio Transcription Suite
+
+A desktop application for transcribing and analyzing financial audio/video content using OpenAI's APIs.
 
 Features:
-• Automatic email monitoring
-• Audio/video transcription
-• Financial analysis generation
-• HTML email reports
-• Easy-to-use GUI interface
+• Process local audio/video files
+• Process URLs from YouTube, Dropbox, etc.
+• Optional email delivery of results
+• Configurable API key and email settings
 
-© 2025 Financial Transcription Service"""
-        
+Version: 2.0
+"""
         messagebox.showinfo("About", about_text)
     
-    def show_docs(self):
-        """Show documentation"""
-        docs_text = """How to Use:
-
-1. SETUP:
-   - Enter your email address in Settings
-   - Set check interval (default: 300 seconds)
-   - Save settings
-
-2. START SERVICE:
-   - Click 'Start Service' to begin monitoring
-   - Service will check for new emails automatically
-   - View activity in the log panel
-
-3. MANUAL PROCESSING:
-   - Use 'Test Once' for a single check
-   - Use Tools menu to process files/URLs directly
-
-4. MONITORING:
-   - Green status = Running
-   - Red status = Stopped
-   - Check logs for detailed activity
-
-5. TROUBLESHOOTING:
-   - Use 'Check Dependencies' in Tools menu
-   - Check log for error messages
-   - Try 'Restart' if service becomes unresponsive
-
-The service will automatically process emails containing:
-• Webinar links and recordings
-• Audio/video attachments
-• Financial content for analysis"""
-        
-        # Create documentation window
-        doc_window = tk.Toplevel(self.root)
-        doc_window.title("Documentation")
-        doc_window.geometry("600x500")
-        
-        text_widget = scrolledtext.ScrolledText(doc_window, wrap=tk.WORD)
-        text_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        text_widget.insert(1.0, docs_text)
-        text_widget.config(state=tk.DISABLED)
-    
     def on_closing(self):
-        """Handle application closing"""
-        try:
-            if self.is_running:
-                if messagebox.askokcancel("Quit", "Service is running. Stop service and quit?"):
-                    self.log_message("Shutting down...")
-                    self.stop_service()
-                    time.sleep(0.5)  # Brief pause for cleanup
-                    self.save_config()
-                    self.root.destroy()
-            else:
-                self.save_config()
-                self.root.destroy()
-        except Exception as e:
-            print(f"Error during shutdown: {e}")
-            # Force quit if error occurs
-            try:
-                self.root.destroy()
-            except:
-                pass
+        """Handle window closing"""
+        self.save_config()
+        self.root.destroy()
 
 def main():
-    """Main application entry point"""
-    root = tk.Tk()
-    app = FinancialTranscribeGUI(root)
-    
-    # Handle window closing
-    root.protocol("WM_DELETE_WINDOW", app.on_closing)
-    
-    # Start the GUI
+    """Main function to run the GUI"""
     try:
+        root = tk.Tk()
+        app = FinancialTranscribeGUI(root)
+        
+        # Handle window closing
+        root.protocol("WM_DELETE_WINDOW", app.on_closing)
+        
         root.mainloop()
-    except KeyboardInterrupt:
-        app.on_closing()
+        
+    except Exception as e:
+        print(f"Error starting GUI: {e}")
+        input("Press Enter to exit...")
 
 if __name__ == "__main__":
     main()
