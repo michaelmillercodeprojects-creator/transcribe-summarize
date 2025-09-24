@@ -35,7 +35,14 @@ jobs:
       run: |
         python -c "import transcribe_financial; print('✅ transcribe_financial')"
         python -c "import email_transcribe_financial; print('✅ email_transcribe_financial')" 
-        python -c "import run_app; print('✅ run_app')"
+        python -c "try:
+            import financial_transcribe_gui
+            print('✅ financial_transcribe_gui (GUI module loaded)')
+        except Exception as e:
+            if 'DISPLAY' in str(e) or 'no display' in str(e).lower():
+                print('✅ financial_transcribe_gui (GUI unavailable in headless - expected)')
+            else:
+                raise e"
         echo "🎉 All core modules validated successfully!"
     
     - name: Check syntax
