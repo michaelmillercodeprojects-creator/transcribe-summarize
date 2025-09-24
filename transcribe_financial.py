@@ -370,12 +370,35 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
                 temp_paths.append(temp_chunk_path)
                 
                 with open(temp_chunk_path, "rb") as audio_file:
-                    print(f"Uploading chunk {i+1} to OpenAI for transcription...")
-                    transcript = client.audio.transcriptions.create(
-                        model=model,
-                        file=audio_file
-                    )
-                    print(f"[SUCCESS] Chunk {i+1} transcription completed: {len(transcript.text)} characters")
+                    file_size = os.path.getsize(temp_chunk_path)
+                    print(f"Uploading chunk {i+1} to OpenAI for transcription... ({file_size:,} bytes)")
+                    
+                    import time, threading
+                    start_time = time.time()
+                    
+                    # Add heartbeat indicator for long-running operations
+                    def heartbeat():
+                        while True:
+                            time.sleep(30)  # Every 30 seconds
+                            elapsed = time.time() - start_time
+                            print(f"Still processing chunk {i+1}... ({elapsed:.0f}s elapsed)")
+                    
+                    heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
+                    heartbeat_thread.start()
+                    
+                    try:
+                        transcript = client.audio.transcriptions.create(
+                            model=model,
+                            file=audio_file
+                        )
+                        
+                        elapsed = time.time() - start_time
+                        print(f"[SUCCESS] Chunk {i+1} transcription completed: {len(transcript.text)} characters ({elapsed:.1f}s)")
+                    
+                    except Exception as api_error:
+                        elapsed = time.time() - start_time
+                        print(f"[ERROR] API call failed after {elapsed:.1f}s: {api_error}")
+                        raise api_error
                     transcript_parts.append(transcript.text)
                     
             except Exception as e:
@@ -398,6 +421,8 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
     if not api_key:
         raise EnvironmentError("OpenAI API key not found")
     
+    print(f"Initializing analysis with model: {model}")
+    print(f"Transcript length: {len(transcript):,} characters")
     client = openai.OpenAI(api_key=api_key)
     
     prompt = f"""You are a professional financial analyst writing a clean, structured investment report. Analyze the following transcript and provide actionable investment insights in a professional format.
@@ -457,14 +482,32 @@ Transcript:
 Provide the analysis in the exact format shown above with clean bullet points, numbered sections, and supporting quotes from the transcript for each key point."""
 
     try:
+        import time, threading
+        print("Sending transcript to GPT for financial analysis...")
+        start_time = time.time()
+        
+        # Add heartbeat indicator for analysis
+        def analysis_heartbeat():
+            while True:
+                time.sleep(15)  # Every 15 seconds
+                elapsed = time.time() - start_time
+                print(f"Still analyzing transcript... ({elapsed:.0f}s elapsed)")
+        
+        analysis_heartbeat_thread = threading.Thread(target=analysis_heartbeat, daemon=True)
+        analysis_heartbeat_thread.start()
+        
         response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2000,
             temperature=0.1,
         )
+        
+        elapsed = time.time() - start_time
+        print(f"Analysis completed in {elapsed:.1f}s")
         return response.choices[0].message.content
     except Exception as e:
+        print(f"[ERROR] Financial analysis failed: {e}")
         raise RuntimeError(f"Financial analysis failed: {e}")
 
 def markdown_to_html(text: str) -> str:
@@ -593,12 +636,19 @@ def main():
         print(f"{'='*60}\n")
         
         print("STEP 1: TRANSCRIBING AUDIO...")
+        import time
+        step1_start = time.time()
+        
         transcript = transcribe_audio(args.input, model=args.transcribe_model)
-        print(f"[SUCCESS] Transcription complete! Generated {len(transcript):,} characters of text\n")
+        step1_time = time.time() - step1_start
+        print(f"[SUCCESS] Transcription complete! Generated {len(transcript):,} characters of text (took {step1_time:.1f}s)\n")
         
         print("STEP 2: CREATING FINANCIAL ANALYSIS...")
+        step2_start = time.time()
+        
         summary = create_financial_summary(transcript, model=args.summary_model)
-        print(f"[SUCCESS] Financial analysis complete! Generated {len(summary):,} characters of analysis\n")
+        step2_time = time.time() - step2_start
+        print(f"[SUCCESS] Financial analysis complete! Generated {len(summary):,} characters of analysis (took {step2_time:.1f}s)\n")
 
         # Create combined document
         combined_content = f"""FINANCIAL ANALYSIS SUMMARY
