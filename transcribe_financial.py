@@ -346,53 +346,61 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
     
     client = openai.OpenAI(api_key=api_key)
     
-    prompt = f"""You are a professional financial analyst. Analyze the following transcript and provide deep, actionable investment insights. Do NOT just extract quotes - provide analytical commentary, implications, and strategic perspective.
+    prompt = f"""You are a professional financial analyst writing a clean, structured investment report. Analyze the following transcript and provide actionable investment insights in a professional format.
 
-**YOUR ANALYSIS SHOULD:**
-- Synthesize information into coherent investment themes
-- Explain WHY themes matter for markets and portfolios
-- Assess risk/reward and timing considerations
-- Connect macro trends to specific investment opportunities
-- Provide forward-looking implications and catalysts
-- Offer critical perspective on the ideas presented
+**FORMATTING REQUIREMENTS:**
+- Use clean bullet points with • symbol only
+- No markdown headers (##, ###) or asterisks (*) 
+- No random formatting characters
+- Write in professional, institutional language
+- Structure information clearly with numbered sections and subsections
+- CRITICAL: Include exact quotes from the transcript to support each key point
 
-**MACRO THEMES - Provide analytical commentary on:**
-- Economic trends: What do they imply for growth, inflation, policy?
-- Market structure changes: How do they create new opportunities/risks?
-- Sector dynamics: Which industries benefit/suffer and why?
-- Geopolitical impacts: How do they affect asset allocation?
-- Central bank positioning: What are the portfolio implications?
-- Cyclical vs structural factors: What's temporary vs lasting?
+**ANALYSIS STRUCTURE:**
 
-**TRADE IDEAS - For each opportunity mentioned, analyze:**
-- Investment thesis: WHY is this attractive now?
-- Risk assessment: What could go wrong? Key vulnerabilities?
-- Timing considerations: Is this early/late cycle? Catalysts ahead?
-- Portfolio fit: How does this fit different risk profiles?
-- Alternatives: What are similar/competing opportunities?
-- Implementation: Best vehicle (stocks, ETFs, options, etc.)?
+1. Market Views
+Provide 3-4 bullet points analyzing:
+• Economic trends and policy implications for markets
+  Supporting Quote: "[Exact quote from transcript about economic conditions]"
+• Sector dynamics and structural changes  
+  Supporting Quote: "[Exact quote from transcript about sector trends]"
+• Geopolitical factors affecting asset allocation
+  Supporting Quote: "[Exact quote from transcript about geopolitical impacts]"
+• Central bank positioning and monetary policy impact
+  Supporting Quote: "[Exact quote from transcript about monetary policy]"
 
-**CRITICAL ANALYSIS:**
-- Challenge assumptions where appropriate
-- Highlight potential blind spots or biases
-- Assess opportunity cost vs other investments
-- Consider different market scenarios
+2. Trade Ideas and Position Commentary
+For each investment opportunity mentioned, provide:
+• Investment thesis: WHY this is attractive now with specific reasoning
+  Supporting Quote: "[Exact quote from transcript explaining the opportunity]"
+• Risk assessment: Key vulnerabilities and what could go wrong
+  Supporting Quote: "[Exact quote from transcript about risks or concerns]"
+• Timing considerations: Catalysts, cycle positioning, entry points
+  Supporting Quote: "[Exact quote from transcript about timing]"
+• Implementation: Best vehicles (stocks, ETFs, sectors) with rationale
+  Supporting Quote: "[Exact quote from transcript about specific investments]"
 
-Keep specific data points, company names, and numbers exact, but provide YOUR analytical framework around them.
+3. Strategic Takeaways  
+Summarize:
+• Key actionable insights for portfolio positioning
+  Supporting Quote: "[Exact quote from transcript with strategic guidance]"
+• Risk management considerations
+  Supporting Quote: "[Exact quote from transcript about risk management]"
+• Timing and implementation guidance
+  Supporting Quote: "[Exact quote from transcript about implementation]"
+
+**WRITING STYLE:**
+- Professional institutional tone
+- Specific data points and company names when mentioned
+- Clear cause-and-effect reasoning
+- Forward-looking implications
+- No speculative language - focus on analytical framework
+- MANDATORY: Include verbatim quotes in quotation marks to support each bullet point
 
 Transcript:
 {transcript}
 
-Structure as:
-
-## MACRO INVESTMENT THEMES
-[Analytical insights on macro trends and market implications]
-
-## TRADE ANALYSIS & OPPORTUNITIES  
-[Deep analysis of specific opportunities with risk/reward assessment]
-
-## STRATEGIC TAKEAWAYS
-[Key actionable insights with analytical commentary on timing, risks, and implementation]"""
+Provide the analysis in the exact format shown above with clean bullet points, numbered sections, and supporting quotes from the transcript for each key point."""
 
     try:
         response = client.chat.completions.create(
@@ -406,27 +414,23 @@ Structure as:
         raise RuntimeError(f"Financial analysis failed: {e}")
 
 def markdown_to_html(text: str) -> str:
-    """Convert basic markdown to HTML for email formatting."""
+    """Convert clean text format to HTML for email formatting."""
     import re
     
-    # Convert headers
-    text = re.sub(r'^## (.+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">\1</h2>', text, flags=re.MULTILINE)
-    text = re.sub(r'^# (.+)$', r'<h1 style="color: #2c3e50;">\1</h1>', text, flags=re.MULTILINE)
+    # Convert numbered sections to headers
+    text = re.sub(r'^(\d+\.\s+[^•\n]+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 25px;">\1</h2>', text, flags=re.MULTILINE)
     
-    # Convert bold text
-    text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
-    
-    # Convert bullet points
-    text = re.sub(r'^- (.+)$', r'<li>\1</li>', text, flags=re.MULTILINE)
+    # Convert bullet points (• symbol)
+    text = re.sub(r'^•\s+(.+)$', r'<li>\1</li>', text, flags=re.MULTILINE)
     
     # Wrap consecutive <li> items in <ul>
-    text = re.sub(r'(<li>.*?</li>(?:\s*<li>.*?</li>)*)', r'<ul style="margin: 10px 0;">\1</ul>', text, flags=re.DOTALL)
+    text = re.sub(r'(<li>.*?</li>(?:\s*<li>.*?</li>)*)', r'<ul style="margin: 15px 0; padding-left: 20px;">\1</ul>', text, flags=re.DOTALL)
     
     # Convert line breaks
     text = text.replace('\n\n', '</p><p style="margin: 15px 0;">')
     text = text.replace('\n', '<br>')
     
-    # Wrap in paragraphs
+    # Wrap remaining text in paragraphs
     if not text.startswith('<'):
         text = f'<p style="margin: 15px 0;">{text}</p>'
     
