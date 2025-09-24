@@ -530,25 +530,46 @@ Configuration:
                     
                     self.log_message(f"Processing file: {os.path.basename(filename)}")
                     
-                    # Build command with email option if enabled
-                    cmd = [sys.executable, "transcribe_financial.py", "--input", filename]
+                    # Get absolute paths for Python and script
+                    python_exe = sys.executable
+                    script_path = os.path.abspath("transcribe_financial.py")
+                    
+                    # Verify script exists
+                    if not os.path.exists(script_path):
+                        self.log_message(f"ERROR: Script not found at {script_path}")
+                        self.status_label.config(text="Error", foreground="red")
+                        return
+                    
+                    # Build command with absolute paths
+                    cmd = [python_exe, script_path, "--input", filename]
                     if self.send_email_var.get() and self.config.get("output_email"):
                         cmd.extend(["--email", self.config.get("output_email")])
                         self.log_message(f"Email delivery enabled to: {self.config.get('output_email')}")
                     
                     self.log_message("Starting transcription process...")
-                    self.log_message(f"Command: {' '.join(cmd)}")
+                    self.log_message(f"Python: {python_exe}")
+                    self.log_message(f"Script: {script_path}")
+                    self.log_message(f"Full command: {' '.join(cmd)}")
                     
                     # Use Popen for real-time output streaming
                     import time
-                    process = subprocess.Popen(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        text=True,
-                        bufsize=1,
-                        universal_newlines=True
-                    )
+                    self.log_message("Launching subprocess...")
+                    
+                    try:
+                        process = subprocess.Popen(
+                            cmd,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            text=True,
+                            bufsize=1,
+                            universal_newlines=True,
+                            cwd=os.getcwd()  # Ensure working directory is set
+                        )
+                        self.log_message(f"Subprocess launched with PID: {process.pid}")
+                    except Exception as e:
+                        self.log_message(f"Failed to launch subprocess: {e}")
+                        self.status_label.config(text="Launch Error", foreground="red")
+                        return
                     
                     # Stream output in real-time
                     start_time = time.time()
