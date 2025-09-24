@@ -540,8 +540,8 @@ Configuration:
                         self.status_label.config(text="Error", foreground="red")
                         return
                     
-                    # Build command with absolute paths
-                    cmd = [python_exe, script_path, "--input", filename]
+                    # Build command with absolute paths and unbuffered output
+                    cmd = [python_exe, "-u", script_path, "--input", filename]
                     if self.send_email_var.get() and self.config.get("output_email"):
                         cmd.extend(["--email", self.config.get("output_email")])
                         self.log_message(f"Email delivery enabled to: {self.config.get('output_email')}")
@@ -678,7 +678,7 @@ Configuration:
                     self.log_message(f"Processing URL: {url}")
                     
                     # Build command with email option if enabled
-                    cmd = [sys.executable, "transcribe_financial.py", "--input", url]
+                    cmd = [sys.executable, "-u", "transcribe_financial.py", "--input", url]
                     if self.send_email_var.get() and self.config.get("output_email"):
                         cmd.extend(["--email", self.config.get("output_email")])
                         self.log_message(f"Email delivery enabled to: {self.config.get('output_email')}")

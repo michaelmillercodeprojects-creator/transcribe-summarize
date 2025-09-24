@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 -u
 # -*- coding: utf-8 -*-
 """
 Financial Audio Transcription Tool
@@ -71,6 +71,7 @@ def get_audio_duration(audio_path: str) -> float:
     cmd = ["ffmpeg", "-i", audio_path]
     try:
         print(f"Analyzing audio duration: {os.path.basename(audio_path)}")
+        sys.stdout.flush()
         result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, timeout=30)
         output = result.stderr.decode()
         for line in output.split('\n'):
@@ -79,6 +80,7 @@ def get_audio_duration(audio_path: str) -> float:
                 h, m, s = time_str.split(':')
                 duration = float(h) * 3600 + float(m) * 60 + float(s)
                 print(f"Audio duration: {duration:.1f} seconds ({int(duration//60)}:{int(duration%60):02d})")
+                sys.stdout.flush()
                 return duration
         raise ValueError(f"Could not find duration in ffmpeg output")
     except subprocess.TimeoutExpired:
@@ -104,6 +106,7 @@ def extract_audio_chunk(video_path: str, start_time: float, duration: float) -> 
     ]
     try:
         print(f"Extracting audio chunk: {start_time:.1f}s - {start_time+duration:.1f}s")
+        sys.stdout.flush()
         result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
         
         # Verify the output file was created and has content
@@ -111,6 +114,7 @@ def extract_audio_chunk(video_path: str, start_time: float, duration: float) -> 
             raise RuntimeError("Audio extraction produced empty file")
         
         print(f"Audio chunk extracted successfully: {os.path.getsize(temp_audio_path)} bytes")
+        sys.stdout.flush()
         return temp_audio_path
     except subprocess.TimeoutExpired:
         if os.path.exists(temp_audio_path):
@@ -286,6 +290,7 @@ def download_file(url: str) -> str:
     
     try:
         print(f"Downloading from: {download_url}")
+        sys.stdout.flush()
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
@@ -339,19 +344,23 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
     # Check file size
     file_size = os.path.getsize(input_path)
     print(f"Processing file: {os.path.basename(input_path)} ({file_size:,} bytes)")
+    sys.stdout.flush()
     
     api_key = load_api_key()
     if not api_key:
         raise EnvironmentError("OpenAI API key not found. Please set OPENAI_API_KEY environment variable or create .env file")
     
     print("Initializing OpenAI client...")
+    sys.stdout.flush()
     client = openai.OpenAI(api_key=api_key)
     
     # Test API connection
     try:
         print("Testing OpenAI API connection...")
+        sys.stdout.flush()
         models = client.models.list()
         print("OpenAI API connection successful")
+        sys.stdout.flush()
     except Exception as e:
         raise RuntimeError(f"Failed to connect to OpenAI API: {e}")
 
@@ -360,10 +369,12 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
         transcript_parts = []
 
         print(f"Audio will be processed in {len(chunks)} chunk(s)")
+        sys.stdout.flush()
         
         for i, (start, chunk_duration) in enumerate(chunks):
             print(f"\n=== Processing chunk {i+1}/{len(chunks)} ===")
             print(f"Time range: {int(start)}s to {int(start+chunk_duration)}s ({chunk_duration:.1f}s duration)")
+            sys.stdout.flush()
             
             try:
                 temp_chunk_path = extract_audio_chunk(input_path, start, chunk_duration)
@@ -372,6 +383,7 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
                 with open(temp_chunk_path, "rb") as audio_file:
                     file_size = os.path.getsize(temp_chunk_path)
                     print(f"Uploading chunk {i+1} to OpenAI for transcription... ({file_size:,} bytes)")
+                    sys.stdout.flush()
                     
                     import time, threading
                     start_time = time.time()
@@ -382,6 +394,7 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
                             time.sleep(30)  # Every 30 seconds
                             elapsed = time.time() - start_time
                             print(f"Still processing chunk {i+1}... ({elapsed:.0f}s elapsed)")
+                            sys.stdout.flush()
                     
                     heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
                     heartbeat_thread.start()
@@ -394,10 +407,12 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
                         
                         elapsed = time.time() - start_time
                         print(f"[SUCCESS] Chunk {i+1} transcription completed: {len(transcript.text)} characters ({elapsed:.1f}s)")
+                        sys.stdout.flush()
                     
                     except Exception as api_error:
                         elapsed = time.time() - start_time
                         print(f"[ERROR] API call failed after {elapsed:.1f}s: {api_error}")
+                        sys.stdout.flush()
                         raise api_error
                     transcript_parts.append(transcript.text)
                     
@@ -423,6 +438,7 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
     
     print(f"Initializing analysis with model: {model}")
     print(f"Transcript length: {len(transcript):,} characters")
+    sys.stdout.flush()
     client = openai.OpenAI(api_key=api_key)
     
     prompt = f"""You are a professional financial analyst writing a clean, structured investment report. Analyze the following transcript and provide actionable investment insights in a professional format.
@@ -484,6 +500,7 @@ Provide the analysis in the exact format shown above with clean bullet points, n
     try:
         import time, threading
         print("Sending transcript to GPT for financial analysis...")
+        sys.stdout.flush()
         start_time = time.time()
         
         # Add heartbeat indicator for analysis
@@ -492,6 +509,7 @@ Provide the analysis in the exact format shown above with clean bullet points, n
                 time.sleep(15)  # Every 15 seconds
                 elapsed = time.time() - start_time
                 print(f"Still analyzing transcript... ({elapsed:.0f}s elapsed)")
+                sys.stdout.flush()
         
         analysis_heartbeat_thread = threading.Thread(target=analysis_heartbeat, daemon=True)
         analysis_heartbeat_thread.start()
@@ -505,6 +523,7 @@ Provide the analysis in the exact format shown above with clean bullet points, n
         
         elapsed = time.time() - start_time
         print(f"Analysis completed in {elapsed:.1f}s")
+        sys.stdout.flush()
         return response.choices[0].message.content
     except Exception as e:
         print(f"[ERROR] Financial analysis failed: {e}")
@@ -634,21 +653,26 @@ def main():
         print(f"Transcription model: {args.transcribe_model}")
         print(f"Analysis model: {args.summary_model}")
         print(f"{'='*60}\n")
+        sys.stdout.flush()
         
         print("STEP 1: TRANSCRIBING AUDIO...")
+        sys.stdout.flush()
         import time
         step1_start = time.time()
         
         transcript = transcribe_audio(args.input, model=args.transcribe_model)
         step1_time = time.time() - step1_start
         print(f"[SUCCESS] Transcription complete! Generated {len(transcript):,} characters of text (took {step1_time:.1f}s)\n")
+        sys.stdout.flush()
         
         print("STEP 2: CREATING FINANCIAL ANALYSIS...")
+        sys.stdout.flush()
         step2_start = time.time()
         
         summary = create_financial_summary(transcript, model=args.summary_model)
         step2_time = time.time() - step2_start
         print(f"[SUCCESS] Financial analysis complete! Generated {len(summary):,} characters of analysis (took {step2_time:.1f}s)\n")
+        sys.stdout.flush()
 
         # Create combined document
         combined_content = f"""FINANCIAL ANALYSIS SUMMARY
@@ -680,6 +704,7 @@ FULL TRANSCRIPT
         print(combined_content)
         print("=" * 80)
         print(f"\nAnalysis saved to: {output_path}")
+        sys.stdout.flush()
         
         # Send email if requested
         if args.email:
