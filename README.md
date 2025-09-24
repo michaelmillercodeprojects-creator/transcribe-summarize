@@ -1,111 +1,234 @@
-# Transcribe-Summarize
+# 🎯 Financial Email Transcription Suite
 
-A command-line tool to transcribe audio/video content and generate summaries using OpenAI's APIs.
+Transform financial audio content into actionable investment insights with AI-powered analysis.
 
-## Features
+## 🚀 Quick Start
 
-- Transcribe audio/video files using OpenAI's Whisper API
-- Generate concise summaries using GPT-4
-- Support for various input formats:
-  - Local audio files (mp3, wav, m4a, etc.)
-  - Local video files (mp4, mov, mkv, etc.)
-  - YouTube URLs (automatic download)
-  - Direct HTTP/HTTPS links
-- Automatic handling of long content through chunking
-- Configurable summary length (short, medium, detailed)
+**Double-click `run_app.py` to launch the GUI application!**
 
-## Installation
-
-### Prerequisites
-
-- Python 3.8 or higher
-- ffmpeg (for audio/video processing)
-- An OpenAI API key
-
-### Installing ffmpeg
-
-On Ubuntu/Debian:
+Or run manually:
 ```bash
-sudo apt update && sudo apt install ffmpeg
+python3 financial_transcribe_gui.py
 ```
 
-On macOS with Homebrew:
+## 🎛️ Features
+
+### GUI Application
+- **Email Automation** - Monitor emails for webinar links
+- **File Processing** - Drag & drop audio/video files  
+- **URL Processing** - YouTube, Dropbox, Google Drive, Zoom
+- **Real-Time Logging** - Watch processing live
+- **Settings Management** - Configure email and intervals
+
+### Financial Analysis
+- **AI-Powered Transcription** - OpenAI Whisper
+- **Investment Insights** - GPT-4 analysis focused on macro themes
+- **Professional Reports** - Clean, actionable summaries
+- **Email Reports** - HTML-formatted analysis sent back
+
+## 📋 Setup
+
+### 1. Install Dependencies
 ```bash
-brew install ffmpeg
+pip install openai python-dotenv requests yt-dlp beautifulsoup4 tkinter
 ```
 
-On Windows with Chocolatey:
-```bash
-choco install ffmpeg
+### 2. Configure API Key
+Create `.env` file:
+```
+OPENAI_API_KEY=your_key_here
 ```
 
-### Installing the Package
-
-```bash
-pip install transcribe-summarize
+### 3. Optional: Email Integration
+Add to `.env`:
+```
+EMAIL_ADDRESS=your_email@gmail.com
+EMAIL_PASSWORD=your_app_password
 ```
 
-Or install from source:
+## 🎵 Usage
+
+### GUI Mode (Recommended)
 ```bash
-git clone https://github.com/yourusername/transcribe-summarize.git
-cd transcribe-summarize
-pip install -e .
+python3 run_app.py
 ```
 
-### Configuration
-
-Set up your OpenAI API key using one of these methods:
-1. Environment variable: `export OPENAI_API_KEY=your-key`
-2. Create a `.env` file with: `OPENAI_API_KEY=your-key`
-3. Create `~/.openai/api_key` file with just the key
-4. Create `api_key` file in the current directory
-
-## Usage
-
-### Basic Usage
-
+### Command Line
 ```bash
-transcribe-summarize --input=path/to/file.mp3
+# Process local file
+python3 transcribe_financial.py --input audio.mp3
+
+# Process URL  
+python3 transcribe_financial.py --input "https://youtube.com/watch?v=..."
+
+# Email monitoring
+python3 email_transcribe_financial.py
 ```
 
-### Options
+## 🔑 Requirements
 
-```bash
-transcribe-summarize --help
+- **Python 3.7+**
+- **OpenAI API Key** (~$0.006 per minute of audio)
+- **tkinter** (usually included with Python)
+
+**Simple, focused, and effective for financial audio analysis.** 📈
+```
+MACRO INVESTMENT THEMES
+• Federal Reserve policy shift indicating potential rate cuts in Q2
+• Emerging market opportunities in Asian tech sector  
+• Dollar weakness creating commodity investment tailwinds
+
+TRADE ANALYSIS & OPPORTUNITIES  
+• Long XLE (Energy ETF) - Supply constraints + geopolitical factors
+• Short duration bonds - Rate volatility expected
+• Defensive positioning in REIT sector with focus on data centers
+
+STRATEGIC TAKEAWAYS
+• Position for reflation trade with 60/40 equity/commodity allocation
+• Hedge currency exposure in international holdings
+• Monitor Fed minutes for timing on duration trades
 ```
 
-- `--input`: Path or URL to audio/video file
-- `--summary-length`: Choose summary detail level (short, medium, detailed)
-- `--transcribe-model`: Choose OpenAI model for transcription
-- `--summary-model`: Choose OpenAI model for summarization
+### **🎵 Supports All Major Platforms**
+- **✅ YouTube** - Full video/audio extraction
+- **✅ Dropbox** - Direct share link processing  
+- **✅ Google Drive** - Public share links
+- **✅ Zoom** - Recording links
+- **✅ Local Files** - MP3, MP4, WAV, M4A, MOV, AVI, WEBM
+- **✅ Email Attachments** - Automatic processing
 
-### Examples
+---
 
-Transcribe a local video file:
+## 🎯 **Perfect For**
+
+### **Investment Professionals**
+- Earnings calls and analyst presentations
+- Fed meetings and policy discussions
+- Market outlook and strategy webinars
+- Corporate board meetings
+
+### **Anyone Who Needs**  
+- **No Technical Skills** - GUI handles everything
+- **Email Integration** - Send links, get analysis back
+- **Professional Reports** - Clean, actionable insights
+- **24/7 Operation** - Continuous monitoring
+
+---
+
+## ⚡ **How It Works**
+
+### **1. Setup (One Time)**
+1. Double-click `run_app.py` to launch
+2. Enter your email address in Settings
+3. Set check interval (default: 5 minutes)
+4. Save settings
+
+### **2. Email Processing**
+- Send webinar links to your configured email
+- AI detects financial content automatically
+- Transcribes and analyzes in the background
+- Sends back professional HTML report
+
+### **3. Manual Processing**
+- **Tools → Process File**: Upload audio/video files
+- **Tools → Process URL**: Enter YouTube, Dropbox, etc. links
+- **Test Once**: Run single email check
+
+### **4. Monitor & Manage**
+- Real-time activity log shows all processing
+- Start/Stop/Restart service as needed
+- View output files with one click
+
+---
+
+## 🔧 **Installation & Setup**
+
+### **Automatic Installation (Windows)**
 ```bash
-transcribe-summarize --input=video.mp4
+# Download and run complete installer
+setup_financial_suite.bat
 ```
 
-Transcribe from YouTube:
+### **Manual Setup (All Platforms)**
 ```bash
-transcribe-summarize --input="https://youtube.com/watch?v=..."
+# 1. Install Python dependencies
+pip install openai python-dotenv requests yt-dlp beautifulsoup4
+
+# 2. Set up OpenAI API key
+echo "OPENAI_API_KEY=your_key_here" > .env
+
+# 3. Optional - Email credentials (for automation)
+echo "EMAIL_ADDRESS=your_email@gmail.com" >> .env
+echo "EMAIL_PASSWORD=your_app_password" >> .env
+
+# 4. Launch GUI
+python3 run_app.py
 ```
 
-Generate a detailed summary:
-```bash
-transcribe-summarize --input=audio.mp3 --summary-length=detailed
+### **🔑 API Requirements**
+- **OpenAI API Key** (get from: https://platform.openai.com/api-keys)
+- **Cost**: ~$0.006 per minute of audio (very affordable)
+- **Gmail App Password** (optional, for email automation)
+
+---
+
+## 📁 **Project Structure**
+
+```
+Financial-Transcription-Suite/
+├── 🚀 run_app.py                    # One-click launcher
+├── 🖥️ financial_transcribe_gui.py   # Main GUI application  
+├── 📧 email_transcribe_financial.py # Email automation engine
+├── 🎵 transcribe_financial.py       # Core transcription tool
+├── 📋 LAUNCH_GUIDE.md               # Complete launcher guide
+├── 🎛️ GUI_README.md                 # GUI usage instructions
+├── 🔗 LINK_SUPPORT.md               # File sharing platforms
+└── 📊 output/                       # Generated reports
 ```
 
-## Output
+---
 
-The tool creates two files in the `output` directory:
-- `{input}_transcript.txt`: Full transcription
-- `{input}_summary.txt`: Generated summary
+## 🛟 **Support & Troubleshooting**
 
-## License
+### **Common Issues**
+| Problem | Solution |
+|---------|----------|
+| "Python not found" | Install Python 3 with PATH option |
+| "tkinter not available" | Install `python3-tk` package |
+| Email not working | Verify Gmail app password & 2FA |
+| GUI won't start | Try: `python3 financial_transcribe_gui.py` |
 
-MIT License
+### **Get Help**
+- **📖 Documentation**: Check GUI_README.md and LAUNCH_GUIDE.md  
+- **🔧 Dependencies**: Use "Tools → Check Dependencies" in GUI
+- **📝 Logs**: Activity log shows detailed processing information
+- **🆘 Manual**: Try command line if GUI fails
 
-## Contributing
+---
 
-Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+## 🎉 **Key Benefits**
+
+### **🎯 For Non-Technical Users**
+- **No Command Line** - Complete GUI interface
+- **Auto-Detection** - Finds Python installations automatically  
+- **One-Click Launch** - Double-click to start
+- **Professional Results** - Investment-grade analysis
+
+### **🔧 For Power Users**
+- **24/7 Automation** - Continuous email monitoring
+- **Advanced Processing** - Handles large files, complex URLs
+- **Corporate Compatible** - Works with security URLs
+- **Service Management** - systemd, screen sessions
+
+### **� For Everyone**
+- **Cost Effective** - Pennies per hour of audio
+- **Time Saving** - Minutes instead of hours for analysis
+- **Professional Output** - Clean, actionable reports
+- **Flexible Input** - Files, URLs, emails, attachments
+
+---
+
+**Transform your financial audio into actionable insights - no technical knowledge required!** 🚀
+
+**Just double-click `run_app.py` and start processing financial content immediately.**
+# This triggers a fresh CI run with the fixed workflow
