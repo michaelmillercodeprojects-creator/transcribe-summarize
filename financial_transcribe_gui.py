@@ -536,29 +536,49 @@ Configuration:
                         cmd.extend(["--email", self.config.get("output_email")])
                         self.log_message(f"Email delivery enabled to: {self.config.get('output_email')}")
                     
-                    result = subprocess.run(
+                    self.log_message("Starting transcription process...")
+                    self.log_message(f"Command: {' '.join(cmd)}")
+                    
+                    # Use Popen for real-time output streaming
+                    import time
+                    process = subprocess.Popen(
                         cmd,
-                        capture_output=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
                         text=True,
-                        timeout=1800  # 30 minute timeout
+                        bufsize=1,
+                        universal_newlines=True
                     )
                     
-                    if result.stdout:
-                        for line in result.stdout.split('\n'):
-                            if line.strip():
-                                self.log_message(line)
+                    # Stream output in real-time
+                    start_time = time.time()
+                    last_output_time = start_time
                     
-                    if result.stderr:
-                        for line in result.stderr.split('\n'):
-                            if line.strip():
-                                self.log_message(f"ERROR: {line}")
+                    while True:
+                        output = process.stdout.readline()
+                        if output == '' and process.poll() is not None:
+                            break
+                        if output:
+                            self.log_message(output.strip())
+                            last_output_time = time.time()
+                        else:
+                            # Check if process is hanging (no output for 60 seconds)
+                            current_time = time.time()
+                            if current_time - last_output_time > 60:
+                                elapsed = current_time - start_time
+                                self.log_message(f"[DEBUG] No output for 60s... Process still running ({elapsed:.0f}s total)")
+                                last_output_time = current_time
+                            time.sleep(0.1)
                     
-                    if result.returncode == 0:
+                    # Get return code
+                    return_code = process.poll()
+                    
+                    if return_code == 0:
                         self.log_message("File processing completed successfully")
                         self.status_label.config(text="Ready to Process", foreground="green")
                         self.status_bar.config(text="File processing completed")
                     else:
-                        self.log_message(f"File processing failed (exit code: {result.returncode})")
+                        self.log_message(f"File processing failed (exit code: {return_code})")
                         self.status_label.config(text="Processing Failed", foreground="red")
                         self.status_bar.config(text="File processing failed")
                     
