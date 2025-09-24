@@ -29,6 +29,11 @@ try:
     from dotenv import load_dotenv
     import requests
     import yt_dlp
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
 except ImportError as e:
     print(f"Missing required package: {e}")
     print("Please install required packages:")
@@ -441,61 +446,67 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
     sys.stdout.flush()
     client = openai.OpenAI(api_key=api_key)
     
-    prompt = f"""You are a professional financial analyst writing a clean, structured investment report. Analyze the following transcript and provide actionable investment insights in a professional format.
+    prompt = f"""You are a senior institutional investment analyst creating a comprehensive research report. Analyze this financial transcript and provide detailed, actionable investment insights with specific metrics and embedded supporting quotes.
 
-**FORMATTING REQUIREMENTS:**
-- Use clean bullet points with • symbol only
-- No markdown headers (##, ###) or asterisks (*) 
-- No random formatting characters
-- Write in professional, institutional language
-- Structure information clearly with numbered sections and subsections
-- CRITICAL: Include exact quotes from the transcript to support each key point
+**CRITICAL FORMATTING REQUIREMENTS:**
+- Create LONG, detailed bullet points (3-4 sentences minimum each)
+- Embed quotes naturally within the bullet point text (not as separate lines)
+- Include specific numbers, percentages, timeframes, and price targets when available
+- Use • symbol for bullets only, no other formatting
+- Write in professional institutional language
+- Provide concrete investment theses with quantifiable expectations
 
 **ANALYSIS STRUCTURE:**
 
-1. Market Views
-Provide 3-4 bullet points analyzing:
-• Economic trends and policy implications for markets
-  Supporting Quote: "[Exact quote from transcript about economic conditions]"
-• Sector dynamics and structural changes  
-  Supporting Quote: "[Exact quote from transcript about sector trends]"
-• Geopolitical factors affecting asset allocation
-  Supporting Quote: "[Exact quote from transcript about geopolitical impacts]"
-• Central bank positioning and monetary policy impact
-  Supporting Quote: "[Exact quote from transcript about monetary policy]"
+1. Macro Market Views
+Create 4-5 comprehensive bullet points covering:
+• **Economic policy impacts with specific market implications**: Analyze how current economic policies will affect different asset classes over the next 6-12 months, including specific percentage moves or doubling/halving expectations. For example: "Federal Reserve's current dovish stance suggests a 25-30% rally in growth stocks over the next six months, as [exact quote about Fed policy], creating opportunities particularly in technology names that could see earnings multiples expand from current 15x to 25x P/E ratios."
 
-2. Trade Ideas and Position Commentary
-For each investment opportunity mentioned, provide:
-• Investment thesis: WHY this is attractive now with specific reasoning
-  Supporting Quote: "[Exact quote from transcript explaining the opportunity]"
-• Risk assessment: Key vulnerabilities and what could go wrong
-  Supporting Quote: "[Exact quote from transcript about risks or concerns]"
-• Timing considerations: Catalysts, cycle positioning, entry points
-  Supporting Quote: "[Exact quote from transcript about timing]"
-• Implementation: Best vehicles (stocks, ETFs, sectors) with rationale
-  Supporting Quote: "[Exact quote from transcript about specific investments]"
+• **Sector rotation themes with quantified targets**: Identify specific sectors moving in/out of favor with concrete price objectives and timeframes. Example format: "Energy sector presents compelling risk-adjusted returns with potential for share prices to double within 12 months, driven by [exact quote about energy fundamentals], particularly targeting companies like XYZ with current $50 target moving to $100+ on supply constraints."
 
-3. Strategic Takeaways  
-Summarize:
-• Key actionable insights for portfolio positioning
-  Supporting Quote: "[Exact quote from transcript with strategic guidance]"
-• Risk management considerations
-  Supporting Quote: "[Exact quote from transcript about risk management]"
-• Timing and implementation guidance
-  Supporting Quote: "[Exact quote from transcript about implementation]"
+• **Currency and commodity macro trends with trading ranges**: Detail how FX and commodity moves will impact portfolios with specific levels and profit potential. Include quotes seamlessly: "Dollar weakness accelerating toward 95 DXY support creates a tailwind for emerging markets, where [speaker quote about EM fundamentals] suggests index returns of 40-50% over 18 months as valuations expand from current 0.8x book value to historical 1.2x mean."
 
-**WRITING STYLE:**
-- Professional institutional tone
-- Specific data points and company names when mentioned
-- Clear cause-and-effect reasoning
-- Forward-looking implications
-- No speculative language - focus on analytical framework
-- MANDATORY: Include verbatim quotes in quotation marks to support each bullet point
+• **Interest rate environment and duration positioning**: Explain rate expectations and fixed income strategy with specific duration targets and yield projections.
 
-Transcript:
+• **Geopolitical risks and defensive positioning**: Quantify geopolitical impacts on asset allocation with specific hedge ratios and protective strategies.
+
+2. Specific Investment Opportunities
+Create 5-6 detailed investment theses with:
+• **High-conviction equity ideas with price targets**: Detail specific stock recommendations with entry points, price targets (including doubling/multiple expansion potential), catalysts, and risk-reward ratios. Format: "Company ABC trading at $45 represents asymmetric upside to $120+ within 24 months (167% return potential) based on [embedded quote about company fundamentals], with key catalyst being product launch in Q2 that management expects to triple revenue run-rate."
+
+• **Sector ETF and thematic plays with return expectations**: Recommend specific ETFs or themes with quantified return potential and timeframes.
+
+• **Options strategies and derivatives positioning**: When mentioned, detail specific options plays, volatility trades, or hedging strategies with precise strikes and expiration targets.
+
+• **International and emerging market opportunities**: Identify specific country/regional plays with return expectations and risk management.
+
+• **Fixed income and credit strategies**: Detail specific bond sectors, credit spreads, and yield curve positioning with target returns.
+
+• **Alternative investments and commodities**: Cover REITs, commodities, or alternative strategies with specific allocation recommendations and return projections.
+
+3. Portfolio Construction and Risk Management
+Create 3-4 comprehensive points on:
+• **Asset allocation models with specific weightings**: Recommend precise portfolio allocations (e.g., "60% equities, 25% fixed income, 15% alternatives") with expected portfolio returns and Sharpe ratios based on the analysis.
+
+• **Hedging strategies and downside protection**: Detail specific hedge ratios, put protection levels, and defensive positioning with cost-benefit analysis.
+
+• **Timing and implementation roadmap**: Provide specific entry/exit criteria, position sizing, and phased implementation over defined timeframes.
+
+• **Performance expectations and key risks**: Quantify expected returns, volatility ranges, and maximum drawdown scenarios with specific monitoring metrics.
+
+**WRITING REQUIREMENTS:**
+- Each bullet point must be 100-150 words minimum
+- Seamlessly integrate quotes within bullet text using "quotation marks"
+- Include specific numbers: percentages, price targets, timeframes, valuations
+- Use concrete examples: "doubling over six months," "triple within two years," "40% upside potential"
+- Mention specific companies, ETFs, sectors, and instruments when discussed
+- Provide quantified risk-reward ratios and expected returns
+- Include implementation details: position sizes, entry/exit levels, timing
+
+Transcript to analyze:
 {transcript}
 
-Provide the analysis in the exact format shown above with clean bullet points, numbered sections, and supporting quotes from the transcript for each key point."""
+Generate the comprehensive analysis following this exact structure with detailed, quantified bullet points containing embedded quotes and specific investment metrics."""
 
     try:
         import time, threading
@@ -635,6 +646,161 @@ def sanitize_filename(s: str) -> str:
     s = re.sub(r'[^A-Za-z0-9_.-]', '', s)
     return s[:64]
 
+def extract_title_from_filename(filename: str) -> str:
+    """Extract a clean title from the audio filename"""
+    import re
+    
+    # Get basename without extension
+    base = os.path.splitext(os.path.basename(filename))[0]
+    
+    # Replace underscores and hyphens with spaces
+    title = base.replace('_', ' ').replace('-', ' ')
+    
+    # Remove common file prefixes/suffixes
+    title = re.sub(r'^(audio|video|recording|webinar|call)\s*', '', title, flags=re.IGNORECASE)
+    title = re.sub(r'\s*(audio|video|recording|webinar|call)$', '', title, flags=re.IGNORECASE)
+    
+    # Clean up multiple spaces and capitalize
+    title = re.sub(r'\s+', ' ', title).strip()
+    title = ' '.join(word.capitalize() for word in title.split())
+    
+    return title if title else "Financial Analysis Report"
+
+def create_pdf_report(summary: str, transcript: str, output_path: str, source_filename: str):
+    """Create a professional PDF report with title and formatted sections"""
+    try:
+        # Extract title from filename
+        report_title = extract_title_from_filename(source_filename)
+        
+        # Create PDF file path
+        pdf_path = output_path.replace('.txt', '.pdf')
+        
+        # Create document
+        doc = SimpleDocTemplate(pdf_path, pagesize=A4, 
+                              rightMargin=0.75*inch, leftMargin=0.75*inch,
+                              topMargin=1*inch, bottomMargin=0.75*inch)
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            textColor='#2c3e50'
+        )
+        
+        section_style = ParagraphStyle(
+            'SectionHeader',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=12,
+            spaceBefore=20,
+            textColor='#34495e'
+        )
+        
+        bullet_style = ParagraphStyle(
+            'BulletPoint',
+            parent=styles['Normal'],
+            fontSize=10,
+            leftIndent=20,
+            spaceAfter=12,
+            spaceBefore=6,
+            alignment=TA_LEFT
+        )
+        
+        transcript_style = ParagraphStyle(
+            'TranscriptText',
+            parent=styles['Normal'],
+            fontSize=9,
+            leftIndent=10,
+            rightIndent=10,
+            spaceAfter=6,
+            alignment=TA_LEFT
+        )
+        
+        # Build story
+        story = []
+        
+        # Title
+        story.append(Paragraph(f"<b>FINANCIAL ANALYSIS REPORT</b>", title_style))
+        story.append(Paragraph(f"<b>{report_title}</b>", title_style))
+        story.append(Spacer(1, 20))
+        
+        # Add generation info
+        generation_info = f"Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}<br/>Source: {os.path.basename(source_filename)}"
+        story.append(Paragraph(generation_info, styles['Normal']))
+        story.append(Spacer(1, 30))
+        
+        # Parse and format the summary
+        lines = summary.split('\n')
+        current_section = None
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Check for section headers (numbered sections)
+            if line and line[0].isdigit() and '.' in line[:5]:
+                current_section = line
+                story.append(Paragraph(f"<b>{line}</b>", section_style))
+                continue
+            
+            # Check for bullet points
+            if line.startswith('•'):
+                # Clean up the bullet point
+                bullet_text = line[1:].strip()
+                
+                # Handle long bullet points by breaking into paragraphs if needed
+                if len(bullet_text) > 500:
+                    # Split at sentence boundaries for very long bullets
+                    sentences = bullet_text.split('. ')
+                    formatted_text = '. '.join(sentences[:2])
+                    if len(sentences) > 2:
+                        formatted_text += '. ' + '. '.join(sentences[2:])
+                else:
+                    formatted_text = bullet_text
+                
+                # Add bullet point with proper formatting
+                story.append(Paragraph(f"• {formatted_text}", bullet_style))
+            else:
+                # Regular paragraph text
+                if line:
+                    story.append(Paragraph(line, styles['Normal']))
+                    story.append(Spacer(1, 6))
+        
+        # Add page break before transcript
+        story.append(PageBreak())
+        
+        # Add transcript section
+        story.append(Paragraph("<b>FULL TRANSCRIPT</b>", section_style))
+        story.append(Spacer(1, 12))
+        
+        # Format transcript in smaller chunks to avoid ReportLab issues
+        transcript_paragraphs = transcript.split('\n\n')
+        for para in transcript_paragraphs:
+            if para.strip():
+                # Escape HTML characters and format
+                clean_para = para.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+                story.append(Paragraph(clean_para, transcript_style))
+                story.append(Spacer(1, 6))
+        
+        # Build PDF
+        doc.build(story)
+        
+        print(f"PDF report created: {pdf_path}")
+        sys.stdout.flush()
+        return pdf_path
+        
+    except Exception as e:
+        print(f"Error creating PDF report: {e}")
+        sys.stdout.flush()
+        return None
+
 def main():
     parser = argparse.ArgumentParser(description="Financial Audio Transcription and Analysis Tool")
     parser.add_argument("--input", required=True, help="Path, URL, or sharing link to audio/video file (supports Dropbox, Google Drive, Zoom, YouTube)")
@@ -704,6 +870,17 @@ FULL TRANSCRIPT
         print(combined_content)
         print("=" * 80)
         print(f"\nAnalysis saved to: {output_path}")
+        sys.stdout.flush()
+        
+        # Create PDF report
+        print("\nSTEP 3: CREATING PDF REPORT...")
+        sys.stdout.flush()
+        
+        pdf_path = create_pdf_report(summary, transcript, output_path, args.input)
+        if pdf_path:
+            print(f"PDF report created: {pdf_path}")
+        else:
+            print("PDF generation failed, text report available")
         sys.stdout.flush()
         
         # Send email if requested
