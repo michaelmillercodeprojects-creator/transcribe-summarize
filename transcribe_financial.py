@@ -55,16 +55,27 @@ def load_api_key():
 
 def get_audio_duration(audio_path: str) -> float:
     """Get audio duration in seconds using ffmpeg."""
+    # Check if ffmpeg is available
+    try:
+        subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True, timeout=10)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+        raise RuntimeError("ffmpeg is not installed or not accessible. Please install ffmpeg to process audio files.")
+    
     cmd = ["ffmpeg", "-i", audio_path]
     try:
-        result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        print(f"Analyzing audio duration: {os.path.basename(audio_path)}")
+        result = subprocess.run(cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE, timeout=30)
         output = result.stderr.decode()
         for line in output.split('\n'):
             if 'Duration:' in line:
                 time_str = line.split('Duration:')[1].split(',')[0].strip()
                 h, m, s = time_str.split(':')
-                return float(h) * 3600 + float(m) * 60 + float(s)
+                duration = float(h) * 3600 + float(m) * 60 + float(s)
+                print(f"Audio duration: {duration:.1f} seconds ({int(duration//60)}:{int(duration%60):02d})")
+                return duration
         raise ValueError(f"Could not find duration in ffmpeg output")
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"ffmpeg timed out while analyzing {audio_path}")
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"ffmpeg failed: {e.stderr.decode()}")
 
@@ -85,9 +96,22 @@ def extract_audio_chunk(video_path: str, start_time: float, duration: float) -> 
         temp_audio_path
     ]
     try:
-        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print(f"Extracting audio chunk: {start_time:.1f}s - {start_time+duration:.1f}s")
+        result = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+        
+        # Verify the output file was created and has content
+        if not os.path.exists(temp_audio_path) or os.path.getsize(temp_audio_path) == 0:
+            raise RuntimeError("Audio extraction produced empty file")
+        
+        print(f"Audio chunk extracted successfully: {os.path.getsize(temp_audio_path)} bytes")
         return temp_audio_path
+    except subprocess.TimeoutExpired:
+        if os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)
+        raise RuntimeError(f"ffmpeg timed out while extracting audio chunk")
     except subprocess.CalledProcessError as e:
+        if os.path.exists(temp_audio_path):
+            os.remove(temp_audio_path)
         raise RuntimeError(f"ffmpeg audio extraction failed: {e.stderr.decode()}")
 
 def get_audio_chunks(audio_path: str, max_duration: float = 600) -> list:
@@ -295,17 +319,34 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
     
     if is_url(input_path):
         print(f"Downloading file from URL: {input_path}")
-        input_path = download_file(input_path)
-        temp_paths.append(input_path)
+        try:
+            input_path = download_file(input_path)
+            temp_paths.append(input_path)
+            print(f"Download completed: {os.path.getsize(input_path)} bytes")
+        except Exception as e:
+            raise RuntimeError(f"Failed to download file: {e}")
 
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
+    # Check file size
+    file_size = os.path.getsize(input_path)
+    print(f"Processing file: {os.path.basename(input_path)} ({file_size:,} bytes)")
+    
     api_key = load_api_key()
     if not api_key:
         raise EnvironmentError("OpenAI API key not found. Please set OPENAI_API_KEY environment variable or create .env file")
     
+    print("Initializing OpenAI client...")
     client = openai.OpenAI(api_key=api_key)
+    
+    # Test API connection
+    try:
+        print("Testing OpenAI API connection...")
+        models = client.models.list()
+        print("OpenAI API connection successful")
+    except Exception as e:
+        raise RuntimeError(f"Failed to connect to OpenAI API: {e}")
 
     try:
         chunks = get_audio_chunks(input_path)
@@ -314,19 +355,25 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
         print(f"Audio will be processed in {len(chunks)} chunk(s)")
         
         for i, (start, chunk_duration) in enumerate(chunks):
-            print(f"Processing chunk {i+1}/{len(chunks)} (from {int(start)}s to {int(start+chunk_duration)}s)...")
+            print(f"\n=== Processing chunk {i+1}/{len(chunks)} ===")
+            print(f"Time range: {int(start)}s to {int(start+chunk_duration)}s ({chunk_duration:.1f}s duration)")
             
-            temp_chunk_path = extract_audio_chunk(input_path, start, chunk_duration)
-            temp_paths.append(temp_chunk_path)
-            
-            with open(temp_chunk_path, "rb") as audio_file:
-                print(f"Sending chunk {i+1} to OpenAI for transcription...")
-                transcript = client.audio.transcriptions.create(
-                    model=model,
-                    file=audio_file
-                )
-                print(f"Chunk {i+1} transcription completed: {len(transcript.text)} characters")
-                transcript_parts.append(transcript.text)
+            try:
+                temp_chunk_path = extract_audio_chunk(input_path, start, chunk_duration)
+                temp_paths.append(temp_chunk_path)
+                
+                with open(temp_chunk_path, "rb") as audio_file:
+                    print(f"Uploading chunk {i+1} to OpenAI for transcription...")
+                    transcript = client.audio.transcriptions.create(
+                        model=model,
+                        file=audio_file
+                    )
+                    print(f"✓ Chunk {i+1} transcription completed: {len(transcript.text)} characters")
+                    transcript_parts.append(transcript.text)
+                    
+            except Exception as e:
+                print(f"✗ Error processing chunk {i+1}: {e}")
+                raise RuntimeError(f"Failed to process audio chunk {i+1}/{len(chunks)}: {e}")
             
             if temp_chunk_path and os.path.exists(temp_chunk_path):
                 os.remove(temp_chunk_path)
@@ -530,13 +577,21 @@ def main():
     args = parser.parse_args()
 
     try:
-        print(f"Starting financial analysis for: {args.input}")
-        transcript = transcribe_audio(args.input, model=args.transcribe_model)
-        print("Transcription complete.\n")
+        print(f"\n{'='*60}")
+        print(f"STARTING FINANCIAL ANALYSIS")
+        print(f"{'='*60}")
+        print(f"Input: {args.input}")
+        print(f"Transcription model: {args.transcribe_model}")
+        print(f"Analysis model: {args.summary_model}")
+        print(f"{'='*60}\n")
         
-        print("Creating financial analysis...")
+        print("STEP 1: TRANSCRIBING AUDIO...")
+        transcript = transcribe_audio(args.input, model=args.transcribe_model)
+        print(f"✓ Transcription complete! Generated {len(transcript):,} characters of text\n")
+        
+        print("STEP 2: CREATING FINANCIAL ANALYSIS...")
         summary = create_financial_summary(transcript, model=args.summary_model)
-        print("Financial analysis complete.\n")
+        print(f"✓ Financial analysis complete! Generated {len(summary):,} characters of analysis\n")
 
         # Create combined document
         combined_content = f"""FINANCIAL ANALYSIS SUMMARY

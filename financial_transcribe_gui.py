@@ -39,6 +39,9 @@ class FinancialTranscribeGUI:
         self.create_widgets()
         self.setup_menu()
         
+        # Check system dependencies
+        self.check_dependencies()
+        
         # Start log queue checking
         self.root.after(100, self.process_log_queue)
     
@@ -263,7 +266,7 @@ class FinancialTranscribeGUI:
         tools_menu.add_command(label="Process File...", command=self.process_file)
         tools_menu.add_command(label="Process URL...", command=self.process_url)
         tools_menu.add_separator()
-        tools_menu.add_command(label="Check Dependencies", command=self.check_dependencies)
+        tools_menu.add_command(label="Check Dependencies", command=self.check_full_dependencies)
         
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -560,11 +563,19 @@ Configuration:
                         self.status_bar.config(text="File processing failed")
                     
                 except subprocess.TimeoutExpired:
-                    self.log_message("File processing timed out after 30 minutes")
+                    self.log_message("⚠️ File processing timed out after 30 minutes")
+                    self.log_message("This usually happens with very large files or network issues")
+                    self.log_message("Try with a smaller file or check your internet connection")
                     self.status_label.config(text="Processing Timeout", foreground="red")
                     self.status_bar.config(text="Processing timed out")
+                except FileNotFoundError as e:
+                    self.log_message(f"❌ File not found: {e}")
+                    self.log_message("Make sure transcribe_financial.py is in the same directory")
+                    self.status_label.config(text="Processing Error", foreground="red")
+                    self.status_bar.config(text="File not found")
                 except Exception as e:
-                    self.log_message(f"Error processing file: {e}")
+                    self.log_message(f"❌ Error processing file: {e}")
+                    self.log_message("Check the error details above for more information")
                     self.status_label.config(text="Processing Error", foreground="red")
                     self.status_bar.config(text="Processing error")
             
@@ -669,7 +680,7 @@ Configuration:
             # Run in separate thread
             threading.Thread(target=run_process, daemon=True).start()
     
-    def check_dependencies(self):
+    def check_full_dependencies(self):
         """Check if all required dependencies are available"""
         def run_check():
             missing_deps = []
@@ -731,6 +742,35 @@ Version: 2.0
 """
         messagebox.showinfo("About", about_text)
     
+    def check_dependencies(self):
+        """Check if required dependencies are available"""
+        try:
+            # Check ffmpeg
+            subprocess.run(["ffmpeg", "-version"], capture_output=True, check=True, timeout=5)
+            self.log_message("✓ FFmpeg is available")
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+            self.log_message("⚠️ FFmpeg not found - audio processing may fail")
+            self.log_message("Install FFmpeg: https://ffmpeg.org/download.html")
+        
+        # Check transcribe_financial.py
+        if os.path.exists("transcribe_financial.py"):
+            self.log_message("✓ transcribe_financial.py found")
+        else:
+            self.log_message("❌ transcribe_financial.py not found in current directory")
+        
+        # Check for API key
+        try:
+            from dotenv import load_dotenv
+            load_dotenv()
+            if os.getenv("OPENAI_API_KEY"):
+                self.log_message("✓ OpenAI API key configured")
+            else:
+                self.log_message("⚠️ OpenAI API key not found - set OPENAI_API_KEY environment variable")
+        except ImportError:
+            self.log_message("⚠️ python-dotenv not installed - API key loading may fail")
+        
+        self.log_message("System check complete\n")
+
     def on_closing(self):
         """Handle window closing"""
         self.save_config()
