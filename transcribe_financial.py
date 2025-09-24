@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Financial Audio Transcription Tool
 Optimized for macro themes, trade ideas, and market analysis
@@ -6,6 +7,12 @@ Optimized for macro themes, trade ideas, and market analysis
 import argparse
 import sys
 import os
+
+# Set UTF-8 encoding for Windows console output
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 import subprocess
 import tempfile
 from typing import Optional
@@ -368,11 +375,11 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
                         model=model,
                         file=audio_file
                     )
-                    print(f"✓ Chunk {i+1} transcription completed: {len(transcript.text)} characters")
+                    print(f"[SUCCESS] Chunk {i+1} transcription completed: {len(transcript.text)} characters")
                     transcript_parts.append(transcript.text)
                     
             except Exception as e:
-                print(f"✗ Error processing chunk {i+1}: {e}")
+                print(f"[ERROR] Error processing chunk {i+1}: {e}")
                 raise RuntimeError(f"Failed to process audio chunk {i+1}/{len(chunks)}: {e}")
             
             if temp_chunk_path and os.path.exists(temp_chunk_path):
@@ -587,11 +594,11 @@ def main():
         
         print("STEP 1: TRANSCRIBING AUDIO...")
         transcript = transcribe_audio(args.input, model=args.transcribe_model)
-        print(f"✓ Transcription complete! Generated {len(transcript):,} characters of text\n")
+        print(f"[SUCCESS] Transcription complete! Generated {len(transcript):,} characters of text\n")
         
         print("STEP 2: CREATING FINANCIAL ANALYSIS...")
         summary = create_financial_summary(transcript, model=args.summary_model)
-        print(f"✓ Financial analysis complete! Generated {len(summary):,} characters of analysis\n")
+        print(f"[SUCCESS] Financial analysis complete! Generated {len(summary):,} characters of analysis\n")
 
         # Create combined document
         combined_content = f"""FINANCIAL ANALYSIS SUMMARY
