@@ -49,10 +49,13 @@ class FinancialTranscribeGUI:
     def load_config(self):
         """Load GUI configuration from file"""
         default_config = {
-            "email": "",
+            "output_email": "",
             "check_interval": 300,
             "auto_start": False,
-            "window_geometry": "800x600"
+            "window_geometry": "800x600",
+            "openai_api_key": "",
+            "email_address": "",
+            "email_password": ""
         }
         
         try:
@@ -126,18 +129,75 @@ class FinancialTranscribeGUI:
         settings_frame = ttk.LabelFrame(main_frame, text="Settings", padding=10)
         settings_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Email settings row
-        email_frame = ttk.Frame(settings_frame)
-        email_frame.pack(fill=tk.X, pady=(0, 8))
+        # Create notebook for tabbed settings
+        settings_notebook = ttk.Notebook(settings_frame)
+        settings_notebook.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(email_frame, text="Email:", width=20).pack(side=tk.LEFT)
-        self.email_var = tk.StringVar(value=self.config.get("email", ""))
-        self.email_entry = ttk.Entry(email_frame, textvariable=self.email_var, width=35)
-        self.email_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        # API & Email Tab
+        api_frame = ttk.Frame(settings_notebook)
+        settings_notebook.add(api_frame, text="API & Email")
+        
+        # OpenAI API Key row
+        api_key_frame = ttk.Frame(api_frame)
+        api_key_frame.pack(fill=tk.X, pady=(5, 8))
+        
+        ttk.Label(api_key_frame, text="OpenAI API Key:", width=18).pack(side=tk.LEFT)
+        self.api_key_var = tk.StringVar(value=self.config.get("openai_api_key", ""))
+        self.api_key_entry = ttk.Entry(api_key_frame, textvariable=self.api_key_var, show="*", width=35)
+        self.api_key_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Show/Hide API key button
+        self.show_api_key = False
+        self.toggle_api_btn = ttk.Button(api_key_frame, text="Show", width=6,
+                                        command=self.toggle_api_key_visibility)
+        self.toggle_api_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        
+        # Output Email row (where reports are sent)
+        output_email_frame = ttk.Frame(api_frame)
+        output_email_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(output_email_frame, text="Send Reports To:", width=18).pack(side=tk.LEFT)
+        self.output_email_var = tk.StringVar(value=self.config.get("output_email", ""))
+        self.output_email_entry = ttk.Entry(output_email_frame, textvariable=self.output_email_var, width=35)
+        self.output_email_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Separator
+        ttk.Separator(api_frame, orient='horizontal').pack(fill=tk.X, pady=(10, 10))
+        
+        # Email Credentials section
+        ttk.Label(api_frame, text="Email Credentials (for sending reports):", font=('Arial', 9, 'bold')).pack(anchor=tk.W, pady=(0, 5))
+        
+        # Email address row
+        email_addr_frame = ttk.Frame(api_frame)
+        email_addr_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(email_addr_frame, text="From Email:", width=18).pack(side=tk.LEFT)
+        self.email_address_var = tk.StringVar(value=self.config.get("email_address", ""))
+        self.email_address_entry = ttk.Entry(email_addr_frame, textvariable=self.email_address_var, width=35)
+        self.email_address_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Email password row
+        email_pass_frame = ttk.Frame(api_frame)
+        email_pass_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(email_pass_frame, text="App Password:", width=18).pack(side=tk.LEFT)
+        self.email_password_var = tk.StringVar(value=self.config.get("email_password", ""))
+        self.email_password_entry = ttk.Entry(email_pass_frame, textvariable=self.email_password_var, show="*", width=35)
+        self.email_password_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Show/Hide password button
+        self.show_email_pass = False
+        self.toggle_pass_btn = ttk.Button(email_pass_frame, text="Show", width=6,
+                                         command=self.toggle_email_pass_visibility)
+        self.toggle_pass_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        
+        # General Tab
+        general_frame = ttk.Frame(settings_notebook)
+        settings_notebook.add(general_frame, text="General")
         
         # Check interval row
-        interval_frame = ttk.Frame(settings_frame)
-        interval_frame.pack(fill=tk.X, pady=(0, 8))
+        interval_frame = ttk.Frame(general_frame)
+        interval_frame.pack(fill=tk.X, pady=(10, 8))
         
         ttk.Label(interval_frame, text="Check Interval (sec):", width=20).pack(side=tk.LEFT)
         self.interval_var = tk.StringVar(value=str(self.config.get("check_interval", 300)))
@@ -145,20 +205,28 @@ class FinancialTranscribeGUI:
                                    textvariable=self.interval_var, width=10)
         interval_spin.pack(side=tk.LEFT, padx=(5, 0))
         
-        # Options frame
-        options_frame = ttk.Frame(settings_frame)
-        options_frame.pack(fill=tk.X, pady=(0, 8))
+        # Options frame (in general tab)
+        options_frame = ttk.Frame(general_frame)
+        options_frame.pack(fill=tk.X, pady=(10, 8))
         
         # Auto-start checkbox
         self.auto_start_var = tk.BooleanVar(value=self.config.get("auto_start", False))
         auto_start_cb = ttk.Checkbutton(options_frame, text="Auto-start service on launch", 
                                        variable=self.auto_start_var)
-        auto_start_cb.pack(side=tk.LEFT)
+        auto_start_cb.pack(anchor=tk.W)
         
-        # Save settings button
-        save_settings_btn = ttk.Button(options_frame, text="Save Settings", 
+        # Save settings button (spans both tabs)
+        save_settings_frame = ttk.Frame(settings_frame)
+        save_settings_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        save_settings_btn = ttk.Button(save_settings_frame, text="Save All Settings", 
                                       command=self.save_settings)
         save_settings_btn.pack(side=tk.RIGHT)
+        
+        # Test credentials button
+        test_creds_btn = ttk.Button(save_settings_frame, text="Test Email", 
+                                   command=self.test_email_credentials)
+        test_creds_btn.pack(side=tk.RIGHT, padx=(0, 10))
         
         # Log Panel
         log_frame = ttk.LabelFrame(main_frame, text="Activity Log", padding=10)
@@ -391,12 +459,18 @@ class FinancialTranscribeGUI:
     def save_settings(self):
         """Save current settings"""
         try:
-            self.config["email"] = self.email_var.get()
+            self.config["output_email"] = self.output_email_var.get()
             self.config["check_interval"] = int(self.interval_var.get())
             self.config["auto_start"] = self.auto_start_var.get()
+            self.config["openai_api_key"] = self.api_key_var.get()
+            self.config["email_address"] = self.email_address_var.get()
+            self.config["email_password"] = self.email_password_var.get()
+            
+            # Also save to .env file for the transcription scripts
+            self.save_to_env()
             
             self.save_config()
-            self.log_message("Settings saved")
+            self.log_message("Settings saved to GUI config and .env file")
             messagebox.showinfo("Settings", "Settings saved successfully!")
             
         except ValueError:
@@ -404,6 +478,116 @@ class FinancialTranscribeGUI:
         except Exception as e:
             self.log_message(f"Error saving settings: {e}")
             messagebox.showerror("Error", f"Failed to save settings: {e}")
+    
+    def save_to_env(self):
+        """Save settings to .env file for the transcription scripts"""
+        try:
+            env_lines = []
+            
+            # Read existing .env file if it exists
+            if os.path.exists('.env'):
+                with open('.env', 'r') as f:
+                    env_lines = f.readlines()
+            
+            # Update or add our values
+            env_dict = {}
+            for line in env_lines:
+                if '=' in line and not line.strip().startswith('#'):
+                    key, value = line.strip().split('=', 1)
+                    env_dict[key] = value
+            
+            # Update with our values
+            if self.api_key_var.get():
+                env_dict['OPENAI_API_KEY'] = self.api_key_var.get()
+            if self.email_address_var.get():
+                env_dict['EMAIL_ADDRESS'] = self.email_address_var.get()
+            if self.email_password_var.get():
+                env_dict['EMAIL_PASSWORD'] = self.email_password_var.get()
+            if self.output_email_var.get():
+                env_dict['OUTPUT_EMAIL'] = self.output_email_var.get()
+            
+            # Write back to .env file
+            with open('.env', 'w') as f:
+                for key, value in env_dict.items():
+                    f.write(f"{key}={value}\n")
+                    
+        except Exception as e:
+            self.log_message(f"Warning: Could not save to .env file: {e}")
+    
+    def toggle_api_key_visibility(self):
+        """Toggle API key visibility"""
+        self.show_api_key = not self.show_api_key
+        if self.show_api_key:
+            self.api_key_entry.config(show="")
+            self.toggle_api_btn.config(text="Hide")
+        else:
+            self.api_key_entry.config(show="*")
+            self.toggle_api_btn.config(text="Show")
+    
+    def toggle_email_pass_visibility(self):
+        """Toggle email password visibility"""
+        self.show_email_pass = not self.show_email_pass
+        if self.show_email_pass:
+            self.email_password_entry.config(show="")
+            self.toggle_pass_btn.config(text="Hide")
+        else:
+            self.email_password_entry.config(show="*")
+            self.toggle_pass_btn.config(text="Show")
+    
+    def test_email_credentials(self):
+        """Test email credentials by sending a test message"""
+        def run_test():
+            try:
+                import smtplib
+                from email.mime.text import MIMEText
+                from email.mime.multipart import MIMEMultipart
+                
+                email_addr = self.email_address_var.get()
+                email_pass = self.email_password_var.get()
+                output_email = self.output_email_var.get()
+                
+                if not email_addr or not email_pass:
+                    self.log_message("ERROR: Email address and password required for test")
+                    return
+                
+                if not output_email:
+                    output_email = email_addr  # Send to self if no output email specified
+                
+                self.log_message("Testing email credentials...")
+                
+                # Create test message
+                msg = MIMEMultipart()
+                msg['From'] = email_addr
+                msg['To'] = output_email
+                msg['Subject'] = "Financial Transcription GUI - Test Email"
+                
+                body = """This is a test email from the Financial Transcription GUI.
+                
+If you received this, your email credentials are working correctly!
+
+Configuration:
+- From: {}
+- To: {}
+- Time: {}""".format(email_addr, output_email, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+                
+                msg.attach(MIMEText(body, 'plain'))
+                
+                # Send via Gmail SMTP
+                server = smtplib.SMTP('smtp.gmail.com', 587)
+                server.starttls()
+                server.login(email_addr, email_pass)
+                text = msg.as_string()
+                server.sendmail(email_addr, output_email, text)
+                server.quit()
+                
+                self.log_message("✅ Email test successful! Check your inbox.")
+                
+            except Exception as e:
+                self.log_message(f"❌ Email test failed: {e}")
+        
+        # Run test in separate thread
+        test_thread = threading.Thread(target=run_test, daemon=True)
+        test_thread.start()
     
     def clear_log(self):
         """Clear the log display"""
