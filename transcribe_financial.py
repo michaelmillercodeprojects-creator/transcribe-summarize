@@ -446,67 +446,71 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
     sys.stdout.flush()
     client = openai.OpenAI(api_key=api_key)
     
-    prompt = f"""You are a senior institutional investment analyst creating a comprehensive research report. Analyze this financial transcript and provide detailed, actionable investment insights with specific metrics and embedded supporting quotes.
+    prompt = f"""You are a senior institutional investment analyst creating a comprehensive research report. Analyze this financial transcript and provide detailed, actionable investment insights based ONLY on information explicitly mentioned in the transcript.
 
-**CRITICAL FORMATTING REQUIREMENTS:**
+**CRITICAL REQUIREMENTS - DO NOT FABRICATE DATA:**
+- ONLY use numbers, percentages, price targets, and timeframes explicitly mentioned in the transcript
+- DO NOT invent or estimate financial figures not stated by the speakers
+- If specific numbers aren't mentioned, use qualitative analysis instead
 - Create LONG, detailed bullet points (3-4 sentences minimum each)
-- Embed quotes naturally within the bullet point text (not as separate lines)
-- Include specific numbers, percentages, timeframes, and price targets when available
+- Embed exact quotes naturally within the bullet point text
 - Use • symbol for bullets only, no other formatting
 - Write in professional institutional language
-- Provide concrete investment theses with quantifiable expectations
 
 **ANALYSIS STRUCTURE:**
 
 1. Macro Market Views
 Create 4-5 comprehensive bullet points covering:
-• **Economic policy impacts with specific market implications**: Analyze how current economic policies will affect different asset classes over the next 6-12 months, including specific percentage moves or doubling/halving expectations. For example: "Federal Reserve's current dovish stance suggests a 25-30% rally in growth stocks over the next six months, as [exact quote about Fed policy], creating opportunities particularly in technology names that could see earnings multiples expand from current 15x to 25x P/E ratios."
+• **Economic policy impacts and market implications**: Analyze the speakers' views on how economic policies will affect different asset classes, using ONLY their specific timeframes and expectations. Include exact quotes: "The Federal Reserve's approach suggests [exact quote about Fed policy], which the speaker believes will impact growth stocks by [only mention specific impacts they stated]."
 
-• **Sector rotation themes with quantified targets**: Identify specific sectors moving in/out of favor with concrete price objectives and timeframes. Example format: "Energy sector presents compelling risk-adjusted returns with potential for share prices to double within 12 months, driven by [exact quote about energy fundamentals], particularly targeting companies like XYZ with current $50 target moving to $100+ on supply constraints."
+• **Sector dynamics and trends**: Detail sector views expressed by speakers with their specific reasoning and any quantitative expectations they provided. Format: "Energy sector outlook appears [speaker sentiment] based on [exact quote about energy fundamentals], with the speaker highlighting [only specific factors they mentioned]."
 
-• **Currency and commodity macro trends with trading ranges**: Detail how FX and commodity moves will impact portfolios with specific levels and profit potential. Include quotes seamlessly: "Dollar weakness accelerating toward 95 DXY support creates a tailwind for emerging markets, where [speaker quote about EM fundamentals] suggests index returns of 40-50% over 18 months as valuations expand from current 0.8x book value to historical 1.2x mean."
+• **Currency and commodity perspectives**: Summarize speakers' views on FX and commodity moves using their exact predictions and reasoning. "Dollar trends were described as [exact quote about dollar], with the speaker expecting [only their stated expectations] for emerging markets."
 
-• **Interest rate environment and duration positioning**: Explain rate expectations and fixed income strategy with specific duration targets and yield projections.
+• **Interest rate environment and positioning**: Explain speakers' rate expectations and fixed income views using only their stated positions and reasoning.
 
-• **Geopolitical risks and defensive positioning**: Quantify geopolitical impacts on asset allocation with specific hedge ratios and protective strategies.
+• **Geopolitical factors and risk assessment**: Detail geopolitical concerns raised by speakers and their specific impact assessments.
 
-2. Specific Investment Opportunities
-Create 5-6 detailed investment theses with:
-• **High-conviction equity ideas with price targets**: Detail specific stock recommendations with entry points, price targets (including doubling/multiple expansion potential), catalysts, and risk-reward ratios. Format: "Company ABC trading at $45 represents asymmetric upside to $120+ within 24 months (167% return potential) based on [embedded quote about company fundamentals], with key catalyst being product launch in Q2 that management expects to triple revenue run-rate."
+2. Investment Ideas and Opportunities
+Create 5-6 detailed points based on what speakers actually discussed:
+• **Specific equity recommendations**: Detail any stock recommendations made by speakers with their exact reasoning, price targets (if mentioned), and catalysts they identified. "Company [name if mentioned] was highlighted because [exact quote about company fundamentals], with the speaker noting [only specific catalysts they mentioned]."
 
-• **Sector ETF and thematic plays with return expectations**: Recommend specific ETFs or themes with quantified return potential and timeframes.
+• **Sector and thematic opportunities**: Summarize sector recommendations with speakers' specific reasoning and any return expectations they provided.
 
-• **Options strategies and derivatives positioning**: When mentioned, detail specific options plays, volatility trades, or hedging strategies with precise strikes and expiration targets.
+• **Trading strategies and positioning**: When mentioned, detail specific trading ideas, options strategies, or hedging approaches discussed by speakers.
 
-• **International and emerging market opportunities**: Identify specific country/regional plays with return expectations and risk management.
+• **International and regional opportunities**: Identify geographic investment themes speakers discussed with their specific reasoning.
 
-• **Fixed income and credit strategies**: Detail specific bond sectors, credit spreads, and yield curve positioning with target returns.
+• **Fixed income and credit views**: Detail bond and credit strategies mentioned by speakers with their reasoning.
 
-• **Alternative investments and commodities**: Cover REITs, commodities, or alternative strategies with specific allocation recommendations and return projections.
+• **Alternative investments**: Cover any REIT, commodity, or alternative strategies specifically discussed.
 
-3. Portfolio Construction and Risk Management
+3. Portfolio Insights and Risk Management
 Create 3-4 comprehensive points on:
-• **Asset allocation models with specific weightings**: Recommend precise portfolio allocations (e.g., "60% equities, 25% fixed income, 15% alternatives") with expected portfolio returns and Sharpe ratios based on the analysis.
+• **Asset allocation perspectives**: Summarize any allocation recommendations speakers made with their specific reasoning and weightings (if provided).
 
-• **Hedging strategies and downside protection**: Detail specific hedge ratios, put protection levels, and defensive positioning with cost-benefit analysis.
+• **Risk management approaches**: Detail specific hedging or risk management strategies speakers discussed.
 
-• **Timing and implementation roadmap**: Provide specific entry/exit criteria, position sizing, and phased implementation over defined timeframes.
+• **Implementation considerations**: Provide timing and implementation guidance based on speakers' views.
 
-• **Performance expectations and key risks**: Quantify expected returns, volatility ranges, and maximum drawdown scenarios with specific monitoring metrics.
+• **Key risks and monitoring points**: Identify specific risks speakers highlighted and their suggested monitoring approaches.
 
-**WRITING REQUIREMENTS:**
+**STRICT WRITING REQUIREMENTS:**
 - Each bullet point must be 100-150 words minimum
-- Seamlessly integrate quotes within bullet text using "quotation marks"
-- Include specific numbers: percentages, price targets, timeframes, valuations
-- Use concrete examples: "doubling over six months," "triple within two years," "40% upside potential"
-- Mention specific companies, ETFs, sectors, and instruments when discussed
-- Provide quantified risk-reward ratios and expected returns
-- Include implementation details: position sizes, entry/exit levels, timing
+- Use ONLY information explicitly stated in the transcript
+- Seamlessly integrate exact quotes within bullet text using "quotation marks"
+- Include specific numbers ONLY when speakers provided them
+- Use qualitative descriptions when quantitative data wasn't provided
+- Mention specific companies, ETFs, sectors ONLY when speakers discussed them
+- Provide risk-reward perspectives ONLY based on speakers' stated views
+- Include implementation details ONLY when speakers provided guidance
+
+**CRITICAL:** Do not fabricate any financial data, price targets, percentages, or predictions not explicitly mentioned by the speakers in the transcript.
 
 Transcript to analyze:
 {transcript}
 
-Generate the comprehensive analysis following this exact structure with detailed, quantified bullet points containing embedded quotes and specific investment metrics."""
+Generate a comprehensive analysis following this structure, using ONLY information from the transcript and avoiding any fabricated financial data or predictions."""
 
     try:
         import time, threading
