@@ -2,11 +2,16 @@
 .env
 .env.*
 api_key
+gui_config.json
 
 # Python cache
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Test files
+test_*.py
+*_test.py
 
 # Virtual environments  
 venv/

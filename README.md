@@ -1,4 +1,4 @@
-# Financial Email Transcription Suite
+# Financial Audio Transcription Suite
 
 Transform financial audio content into actionable investment insights with AI-powered analysis.
 
@@ -14,12 +14,13 @@ python3 financial_transcribe_gui.py
 ## Features
 
 ### GUI Application
+- **Direct Processing** - Ready to process files immediately
 - **Enhanced Settings** - API key configuration and email setup with tabbed interface
-- **Email Automation** - Monitor emails for webinar links
-- **File Processing** - Drag & drop audio/video files  
+- **File Processing** - Select local audio/video files  
 - **URL Processing** - YouTube, Dropbox, Google Drive, Zoom
-- **Real-Time Logging** - Watch processing live
-- **Test Functions** - Verify email credentials and dependencies
+- **Email Toggle** - Send results via email
+- **Real-Time Logging** - Watch processing live with status indicators
+- **System Status** - Clear "Ready to Process" status display
 
 ### Financial Analysis
 - **AI-Powered Transcription** - OpenAI Whisper
@@ -31,7 +32,7 @@ python3 financial_transcribe_gui.py
 
 ### 1. Install Dependencies
 ```bash
-pip install openai python-dotenv requests yt-dlp beautifulsoup4 tkinter
+pip install -r requirements.txt
 ```
 
 ### 2. Configure via GUI (Recommended)
@@ -65,8 +66,8 @@ python3 transcribe_financial.py --input audio.mp3
 # Process URL  
 python3 transcribe_financial.py --input "https://youtube.com/watch?v=..."
 
-# Email monitoring
-python3 email_transcribe_financial.py
+# Send results via email
+python3 transcribe_financial.py --input audio.mp3 --email recipient@example.com
 ```
 
 ## Requirements
@@ -246,13 +247,12 @@ python3 run_app.py
 ```
 Financial-Transcription-Suite/
 ├── 🚀 run_app.py                    # One-click launcher
-├── 🖥️ financial_transcribe_gui.py   # Main GUI application  
-├── 📧 email_transcribe_financial.py # Email automation engine
-├── 🎵 transcribe_financial.py       # Core transcription tool
-├── 📋 LAUNCH_GUIDE.md               # Complete launcher guide
-├── 🎛️ GUI_README.md                 # GUI usage instructions
-├── 🔗 LINK_SUPPORT.md               # File sharing platforms
-└── 📊 output/                       # Generated reports
+├── financial_transcribe_gui.py      # Main GUI application  
+├── transcribe_financial.py          # Core transcription tool
+├── run_app.py                        # Application launcher
+├── requirements.txt                  # Python dependencies
+├── audio/                            # Input audio files
+└── output/                           # Generated reports
 ```
 
 ---
@@ -283,11 +283,11 @@ Financial-Transcription-Suite/
 - **One-Click Launch** - Double-click to start
 - **Professional Results** - Investment-grade analysis
 
-### **🔧 For Power Users**
-- **24/7 Automation** - Continuous email monitoring
+### **🔧 For Power Users**  
+- **Command Line Access** - Direct script execution
 - **Advanced Processing** - Handles large files, complex URLs
 - **Corporate Compatible** - Works with security URLs
-- **Service Management** - systemd, screen sessions
+- **API Integration** - Programmatic access to functionality
 
 ### **� For Everyone**
 - **Cost Effective** - Pennies per hour of audio
