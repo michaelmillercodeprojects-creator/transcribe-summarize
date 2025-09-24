@@ -461,43 +461,44 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
 
 1. Macro Market Views
 Create 4-5 comprehensive bullet points covering:
-• **Economic policy impacts and market implications**: Analyze the speakers' views on how economic policies will affect different asset classes, using ONLY their specific timeframes and expectations. Include exact quotes: "The Federal Reserve's approach suggests [exact quote about Fed policy], which the speaker believes will impact growth stocks by [only mention specific impacts they stated]."
+• <b>Economic policy impacts and market implications</b>: Analyze the speakers' views on how economic policies will affect different asset classes, using ONLY their specific timeframes and expectations. Include exact quotes: "The Federal Reserve's approach suggests [exact quote about Fed policy], which the speaker believes will impact growth stocks by [only mention specific impacts they stated]."
 
-• **Sector dynamics and trends**: Detail sector views expressed by speakers with their specific reasoning and any quantitative expectations they provided. Format: "Energy sector outlook appears [speaker sentiment] based on [exact quote about energy fundamentals], with the speaker highlighting [only specific factors they mentioned]."
+• <b>Sector dynamics and trends</b>: Detail sector views expressed by speakers with their specific reasoning and any quantitative expectations they provided. Format: "Energy sector outlook appears [speaker sentiment] based on [exact quote about energy fundamentals], with the speaker highlighting [only specific factors they mentioned]."
 
-• **Currency and commodity perspectives**: Summarize speakers' views on FX and commodity moves using their exact predictions and reasoning. "Dollar trends were described as [exact quote about dollar], with the speaker expecting [only their stated expectations] for emerging markets."
+• <b>Currency and commodity perspectives</b>: Summarize speakers' views on FX and commodity moves using their exact predictions and reasoning. "Dollar trends were described as [exact quote about dollar], with the speaker expecting [only their stated expectations] for emerging markets."
 
-• **Interest rate environment and positioning**: Explain speakers' rate expectations and fixed income views using only their stated positions and reasoning.
+• <b>Interest rate environment and positioning</b>: Explain speakers' rate expectations and fixed income views using only their stated positions and reasoning.
 
-• **Geopolitical factors and risk assessment**: Detail geopolitical concerns raised by speakers and their specific impact assessments.
+• <b>Geopolitical factors and risk assessment</b>: Detail geopolitical concerns raised by speakers and their specific impact assessments.
 
 2. Investment Ideas and Opportunities
 Create 5-6 detailed points based on what speakers actually discussed:
-• **Specific equity recommendations**: Detail any stock recommendations made by speakers with their exact reasoning, price targets (if mentioned), and catalysts they identified. "Company [name if mentioned] was highlighted because [exact quote about company fundamentals], with the speaker noting [only specific catalysts they mentioned]."
+• <b>Specific equity recommendations</b>: Detail any stock recommendations made by speakers with their exact reasoning, price targets (if mentioned), and catalysts they identified. "Company [name if mentioned] was highlighted because [exact quote about company fundamentals], with the speaker noting [only specific catalysts they mentioned]."
 
-• **Sector and thematic opportunities**: Summarize sector recommendations with speakers' specific reasoning and any return expectations they provided.
+• <b>Sector and thematic opportunities</b>: Summarize sector recommendations with speakers' specific reasoning and any return expectations they provided.
 
-• **Trading strategies and positioning**: When mentioned, detail specific trading ideas, options strategies, or hedging approaches discussed by speakers.
+• <b>Trading strategies and positioning</b>: When mentioned, detail specific trading ideas, options strategies, or hedging approaches discussed by speakers.
 
-• **International and regional opportunities**: Identify geographic investment themes speakers discussed with their specific reasoning.
+• <b>International and regional opportunities</b>: Identify geographic investment themes speakers discussed with their specific reasoning.
 
-• **Fixed income and credit views**: Detail bond and credit strategies mentioned by speakers with their reasoning.
+• <b>Fixed income and credit views</b>: Detail bond and credit strategies mentioned by speakers with their reasoning.
 
-• **Alternative investments**: Cover any REIT, commodity, or alternative strategies specifically discussed.
+• <b>Alternative investments</b>: Cover any REIT, commodity, or alternative strategies specifically discussed.
 
 3. Portfolio Insights and Risk Management
 Create 3-4 comprehensive points on:
-• **Asset allocation perspectives**: Summarize any allocation recommendations speakers made with their specific reasoning and weightings (if provided).
+• <b>Asset allocation perspectives</b>: Summarize any allocation recommendations speakers made with their specific reasoning and weightings (if provided).
 
-• **Risk management approaches**: Detail specific hedging or risk management strategies speakers discussed.
+• <b>Risk management approaches</b>: Detail specific hedging or risk management strategies speakers discussed.
 
-• **Implementation considerations**: Provide timing and implementation guidance based on speakers' views.
+• <b>Implementation considerations</b>: Provide timing and implementation guidance based on speakers' views.
 
-• **Key risks and monitoring points**: Identify specific risks speakers highlighted and their suggested monitoring approaches.
+• <b>Key risks and monitoring points</b>: Identify specific risks speakers highlighted and their suggested monitoring approaches.
 
 **STRICT WRITING REQUIREMENTS:**
 - Each bullet point must be 100-150 words minimum
 - Use ONLY information explicitly stated in the transcript
+- Use <b>bold tags</b> instead of asterisks for emphasis (never use **text**)
 - Seamlessly integrate exact quotes within bullet text using "quotation marks"
 - Include specific numbers ONLY when speakers provided them
 - Use qualitative descriptions when quantitative data wasn't provided
@@ -550,6 +551,9 @@ def markdown_to_html(text: str) -> str:
     
     # Convert numbered sections to headers
     text = re.sub(r'^(\d+\.\s+[^•\n]+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 25px;">\1</h2>', text, flags=re.MULTILINE)
+    
+    # Convert bold tags to proper HTML bold with styling
+    text = re.sub(r'<b>(.*?)</b>', r'<strong style="color: #2c3e50; font-weight: bold;">\1</strong>', text)
     
     # Convert bullet points (• symbol)
     text = re.sub(r'^•\s+(.+)$', r'<li>\1</li>', text, flags=re.MULTILINE)
@@ -758,6 +762,9 @@ def create_pdf_report(summary: str, transcript: str, output_path: str, source_fi
             if line.startswith('•'):
                 # Clean up the bullet point
                 bullet_text = line[1:].strip()
+                
+                # Convert bold tags to ReportLab bold format
+                bullet_text = bullet_text.replace('<b>', '<b>').replace('</b>', '</b>')
                 
                 # Handle long bullet points by breaking into paragraphs if needed
                 if len(bullet_text) > 500:
