@@ -580,10 +580,10 @@ Configuration:
                 server.sendmail(email_addr, output_email, text)
                 server.quit()
                 
-                self.log_message("✅ Email test successful! Check your inbox.")
+                self.log_message("Email test successful! Check your inbox.")
                 
             except Exception as e:
-                self.log_message(f"❌ Email test failed: {e}")
+                self.log_message(f"Email test failed: {e}")
         
         # Run test in separate thread
         test_thread = threading.Thread(target=run_test, daemon=True)
@@ -662,14 +662,14 @@ Configuration:
                                 self.log_message(f"ERROR: {line}")
                     
                     if result.returncode == 0:
-                        self.log_message("✅ File processing completed successfully")
+                        self.log_message("File processing completed successfully")
                     else:
-                        self.log_message(f"❌ File processing failed (exit code: {result.returncode})")
+                        self.log_message(f"File processing failed (exit code: {result.returncode})")
                     
                 except subprocess.TimeoutExpired:
-                    self.log_message("⏰ File processing timed out after 30 minutes")
+                    self.log_message("File processing timed out after 30 minutes")
                 except Exception as e:
-                    self.log_message(f"❌ Error processing file: {e}")
+                    self.log_message(f"Error processing file: {e}")
             
             # Run in separate thread
             threading.Thread(target=run_process, daemon=True).start()
@@ -741,14 +741,14 @@ Configuration:
                                 self.log_message(f"ERROR: {line}")
                     
                     if result.returncode == 0:
-                        self.log_message("✅ URL processing completed successfully")
+                        self.log_message("URL processing completed successfully")
                     else:
-                        self.log_message(f"❌ URL processing failed (exit code: {result.returncode})")
+                        self.log_message(f"URL processing failed (exit code: {result.returncode})")
                     
                 except subprocess.TimeoutExpired:
-                    self.log_message("⏰ URL processing timed out after 30 minutes")
+                    self.log_message("URL processing timed out after 30 minutes")
                 except Exception as e:
-                    self.log_message(f"❌ Error processing URL: {e}")
+                    self.log_message(f"Error processing URL: {e}")
             
             # Run in separate thread
             threading.Thread(target=run_process, daemon=True).start()
