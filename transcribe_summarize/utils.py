@@ -1,5 +1,6 @@
 import os
 from typing import Optional
+from dotenv import load_dotenv
 
 
 def is_valid_api_key(key: str) -> bool:
@@ -16,7 +17,11 @@ def load_api_key() -> Optional[str]:
     3. ~/.openai/api_key file
     4. ./api_key file in current directory
     """
-    # Try environment variable first
+    from dotenv import load_dotenv
+    # Load .env file first
+    load_dotenv()
+    
+    # Try environment variable
     key = os.environ.get("OPENAI_API_KEY")
     if is_valid_api_key(key):
         return key

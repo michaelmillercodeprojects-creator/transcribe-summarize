@@ -2,7 +2,6 @@
 # Usage: ./summarize.sh <input_path_or_url> [summary-length]
 # Example: ./summarize.sh audio/myfile.mp3 short
 #          ./summarize.sh https://www.youtube.com/watch?v=xxxx medium
-
 set -e
 
 if [ -z "$OPENAI_API_KEY" ]; then
@@ -18,4 +17,4 @@ if [ -z "$INPUT" ]; then
   exit 1
 fi
 
-python -m src.transcribe_summarize --input "$INPUT" --summary-length "$SUMMARY_LENGTH"
+python -m transcribe_summarize.transcribe_summarize --input "$INPUT" --summary-length "$SUMMARY_LENGTH"

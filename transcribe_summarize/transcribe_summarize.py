@@ -86,6 +86,9 @@ def transcribe_audio(input_path: str, model: str = "gpt-4o-mini-transcribe") -> 
         print(f"Downloading file from URL: {input_path}")
         input_path = download_file(input_path)
         temp_paths.append(input_path)
+    
+    # Convert Windows path to Unix path
+    input_path = input_path.replace('\\', '/').replace('C:', '')
 
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
@@ -103,10 +106,10 @@ def transcribe_audio(input_path: str, model: str = "gpt-4o-mini-transcribe") -> 
     chunks = get_audio_chunks(input_path)
     transcript_parts = []
 
+    print(f"Audio will be processed in {len(chunks)} chunk(s)")
     for i, (start, chunk_duration) in enumerate(chunks):
-        if len(chunks) > 1:
-            print(f"\nProcessing chunk {i+1}/{len(chunks)} "
-                  f"(from {int(start)}s to {int(start+chunk_duration)}s)...")
+        print(f"\nProcessing chunk {i+1}/{len(chunks)} "
+              f"(from {int(start)}s to {int(start+chunk_duration)}s)...")
 
         # Extract audio chunk
         temp_chunk_path = extract_audio_chunk(input_path, start, chunk_duration)
@@ -114,11 +117,14 @@ def transcribe_audio(input_path: str, model: str = "gpt-4o-mini-transcribe") -> 
 
         try:
             with open(temp_chunk_path, "rb") as audio_file:
+                print(f"Sending chunk {i+1} to OpenAI for transcription...")
                 resp = openai.audio.transcriptions.create(model=model, file=audio_file)
                 if isinstance(resp, dict):
                     text = resp.get("text") or resp.get("transcript") or str(resp)
                 else:
                     text = getattr(resp, "text", None) or getattr(resp, "transcript", None) or str(resp)
+                
+                print(f"Chunk {i+1} transcription completed: {len(text)} characters")
                 transcript_parts.append(text)
         finally:
             if temp_chunk_path and os.path.exists(temp_chunk_path):

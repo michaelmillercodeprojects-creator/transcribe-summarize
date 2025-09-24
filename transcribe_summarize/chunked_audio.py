@@ -46,16 +46,32 @@ def extract_audio_chunk(video_path: str, start_time: float, duration: float) -> 
         error_msg = e.stderr.decode(errors='ignore')
         raise RuntimeError(f"ffmpeg audio extraction failed:\nCommand: {' '.join(cmd)}\nError: {error_msg}")
 
-def get_audio_chunks(audio_path: str, max_duration: float = 1380, overlap: float = 10) -> List[Tuple[float, float]]:
+def get_audio_chunks(audio_path: str, max_duration: float = 600, overlap: float = 10) -> List[Tuple[float, float]]:
     """Split audio into chunks of max_duration with overlap seconds of overlap."""
     duration = get_audio_duration(audio_path)
-    if duration <= max_duration:
-        return [(0, duration)]
+    
+    # For files longer than 10 minutes, always chunk to ensure reliability
+    if duration <= 600:  # 10 minutes
+        # Add a small buffer to ensure we capture everything
+        return [(0, duration + 0.5)]
     
     chunks = []
     start = 0
     while start < duration:
-        chunk_duration = min(max_duration, duration - start)
+        # Calculate remaining duration
+        remaining = duration - start
+        chunk_duration = min(max_duration, remaining)
+        
+        # Ensure we don't miss the end by making the last chunk slightly longer
+        if remaining <= (max_duration + overlap):
+            chunk_duration = remaining + 0.5  # Add small buffer to last chunk
+            
         chunks.append((start, chunk_duration))
+        
+        # If this chunk covers the rest of the audio, break
+        if start + chunk_duration >= duration:
+            break
+            
         start += max_duration - overlap
+    
     return chunks
