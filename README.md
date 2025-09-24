@@ -1,8 +1,8 @@
-# 🎯 Financial Email Transcription Suite
+# Financial Email Transcription Suite
 
 Transform financial audio content into actionable investment insights with AI-powered analysis.
 
-## 🚀 Quick Start
+## Quick Start
 
 **Double-click `run_app.py` to launch the GUI application!**
 
@@ -11,14 +11,15 @@ Or run manually:
 python3 financial_transcribe_gui.py
 ```
 
-## 🎛️ Features
+## Features
 
 ### GUI Application
+- **Enhanced Settings** - API key configuration and email setup with tabbed interface
 - **Email Automation** - Monitor emails for webinar links
 - **File Processing** - Drag & drop audio/video files  
 - **URL Processing** - YouTube, Dropbox, Google Drive, Zoom
 - **Real-Time Logging** - Watch processing live
-- **Settings Management** - Configure email and intervals
+- **Test Functions** - Verify email credentials and dependencies
 
 ### Financial Analysis
 - **AI-Powered Transcription** - OpenAI Whisper
@@ -26,27 +27,30 @@ python3 financial_transcribe_gui.py
 - **Professional Reports** - Clean, actionable summaries
 - **Email Reports** - HTML-formatted analysis sent back
 
-## 📋 Setup
+## Setup
 
 ### 1. Install Dependencies
 ```bash
 pip install openai python-dotenv requests yt-dlp beautifulsoup4 tkinter
 ```
 
-### 2. Configure API Key
+### 2. Configure via GUI (Recommended)
+1. Launch the GUI: `python3 run_app.py`
+2. Go to "API & Email" settings tab
+3. Enter your OpenAI API key
+4. Configure email settings for sending reports
+5. Click "Save All Settings"
+
+### 3. Manual Configuration (Alternative)
 Create `.env` file:
 ```
 OPENAI_API_KEY=your_key_here
-```
-
-### 3. Optional: Email Integration
-Add to `.env`:
-```
 EMAIL_ADDRESS=your_email@gmail.com
 EMAIL_PASSWORD=your_app_password
+OUTPUT_EMAIL=recipient@example.com
 ```
 
-## 🎵 Usage
+## Usage
 
 ### GUI Mode (Recommended)
 ```bash
@@ -65,14 +69,79 @@ python3 transcribe_financial.py --input "https://youtube.com/watch?v=..."
 python3 email_transcribe_financial.py
 ```
 
-## 🔑 Requirements
+## Requirements
 
 - **Python 3.7+**
 - **OpenAI API Key** (~$0.006 per minute of audio)
 - **tkinter** (usually included with Python)
 
-**Simple, focused, and effective for financial audio analysis.** 📈
+## Sample Output
+
 ```
+MACRO INVESTMENT THEMES
+• Federal Reserve policy shift indicating potential rate cuts in Q2
+• Emerging market opportunities in Asian tech sector  
+• Dollar weakness creating commodity investment tailwinds
+
+TRADE ANALYSIS & OPPORTUNITIES  
+• Long XLE (Energy ETF) - Supply constraints + geopolitical factors
+• Short duration bonds - Rate volatility expected
+• Defensive positioning in REIT sector with focus on data centers
+
+STRATEGIC TAKEAWAYS
+• Position for reflation trade with 60/40 equity/commodity allocation
+• Hedge currency exposure in international holdings
+• Monitor Fed minutes for timing on duration trades
+```
+
+## Supported Platforms
+
+- **YouTube** - Full video/audio extraction
+- **Dropbox** - Direct share link processing  
+- **Google Drive** - Public share links
+- **Zoom** - Recording links
+- **Local Files** - MP3, MP4, WAV, M4A, MOV, AVI, WEBM
+- **Email Attachments** - Automatic processing
+
+## Perfect For
+
+### Investment Professionals
+- Earnings calls and analyst presentations
+- Fed meetings and policy discussions
+- Market outlook and strategy webinars
+- Corporate board meetings
+
+### Anyone Who Needs  
+- **No Technical Skills** - GUI handles everything
+- **Email Integration** - Send links, get analysis back
+- **Professional Reports** - Clean, actionable insights
+- **24/7 Operation** - Continuous monitoring
+
+## How It Works
+
+### 1. Setup (One Time)
+1. Double-click `run_app.py` to launch
+2. Configure API key and email settings in GUI
+3. Test your configuration
+4. Save settings
+
+### 2. Email Processing
+- Send webinar links to your configured email
+- AI detects financial content automatically
+- Transcribes and analyzes in the background
+- Sends back professional HTML report
+
+### 3. Manual Processing
+- **Tools → Process File**: Upload audio/video files
+- **Tools → Process URL**: Enter YouTube, Dropbox, etc. links
+- **Test Once**: Run single email check
+
+### 4. Monitor & Manage
+- Real-time activity log shows all processing
+- Start/Stop/Restart service as needed
+- View output files with one click
+
+Simple, focused, and effective for financial audio analysis.
 MACRO INVESTMENT THEMES
 • Federal Reserve policy shift indicating potential rate cuts in Q2
 • Emerging market opportunities in Asian tech sector  
