@@ -448,7 +448,7 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
     
     prompt = f"""You are a senior institutional investment analyst creating a comprehensive research report. Analyze this financial transcript and provide detailed, actionable investment insights based ONLY on information explicitly mentioned in the transcript.
 
-**CRITICAL REQUIREMENTS - DO NOT FABRICATE DATA:**
+<b>CRITICAL REQUIREMENTS - DO NOT FABRICATE DATA:</b>
 - ONLY use numbers, percentages, price targets, and timeframes explicitly mentioned in the transcript
 - DO NOT invent or estimate financial figures not stated by the speakers
 - If specific numbers aren't mentioned, use qualitative analysis instead
@@ -457,7 +457,7 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
 - Use • symbol for bullets only, no other formatting
 - Write in professional institutional language
 
-**ANALYSIS STRUCTURE:**
+<b>ANALYSIS STRUCTURE:</b>
 
 1. Macro Market Views
 Create 4-5 comprehensive bullet points covering:
@@ -495,7 +495,7 @@ Create 3-4 comprehensive points on:
 
 • <b>Key risks and monitoring points</b>: Identify specific risks speakers highlighted and their suggested monitoring approaches.
 
-**STRICT WRITING REQUIREMENTS:**
+<b>STRICT WRITING REQUIREMENTS:</b>
 - Each bullet point must be 100-150 words minimum
 - Use ONLY information explicitly stated in the transcript
 - Use <b>bold tags</b> instead of asterisks for emphasis (never use **text**)
@@ -506,7 +506,7 @@ Create 3-4 comprehensive points on:
 - Provide risk-reward perspectives ONLY based on speakers' stated views
 - Include implementation details ONLY when speakers provided guidance
 
-**CRITICAL:** Do not fabricate any financial data, price targets, percentages, or predictions not explicitly mentioned by the speakers in the transcript.
+<b>CRITICAL:</b> Do not fabricate any financial data, price targets, percentages, or predictions not explicitly mentioned by the speakers in the transcript.
 
 Transcript to analyze:
 {transcript}
@@ -549,8 +549,14 @@ def markdown_to_html(text: str) -> str:
     """Convert clean text format to HTML for email formatting."""
     import re
     
+    # Convert ## headers to HTML headers
+    text = re.sub(r'^##\s+(.+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 25px;">\1</h2>', text, flags=re.MULTILINE)
+    
     # Convert numbered sections to headers
     text = re.sub(r'^(\d+\.\s+[^•\n]+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 25px;">\1</h2>', text, flags=re.MULTILINE)
+    
+    # Convert **text** to bold tags first
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
     
     # Convert bold tags to proper HTML bold with styling
     text = re.sub(r'<b>(.*?)</b>', r'<strong style="color: #2c3e50; font-weight: bold;">\1</strong>', text)
@@ -752,6 +758,12 @@ def create_pdf_report(summary: str, transcript: str, output_path: str, source_fi
             if not line:
                 continue
                 
+            # Check for ## headers
+            if line.startswith('##'):
+                header_text = line[2:].strip()
+                story.append(Paragraph(f"<b>{header_text}</b>", section_style))
+                continue
+                
             # Check for section headers (numbered sections)
             if line and line[0].isdigit() and '.' in line[:5]:
                 current_section = line
@@ -763,8 +775,12 @@ def create_pdf_report(summary: str, transcript: str, output_path: str, source_fi
                 # Clean up the bullet point
                 bullet_text = line[1:].strip()
                 
+                # Convert formatting to ReportLab format
+                # First convert **text** to <b>text</b>
+                import re
+                bullet_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', bullet_text)
                 # Convert bold tags to ReportLab bold format
-                bullet_text = bullet_text.replace('<b>', '<b>').replace('</b>', '</b>')
+                bullet_text = bullet_text.replace('<b>', '<b>').replace('</b>', '</b>') 
                 
                 # Handle long bullet points by breaking into paragraphs if needed
                 if len(bullet_text) > 500:
@@ -847,6 +863,12 @@ def main():
         step2_start = time.time()
         
         summary = create_financial_summary(transcript, model=args.summary_model)
+        
+        # Clean up any remaining formatting issues
+        import re
+        summary = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', summary)  # Convert **text** to <b>text</b>
+        summary = re.sub(r'^##\s+(.+)$', r'<b>\1</b>', summary, flags=re.MULTILINE)  # Convert ## headers
+        
         step2_time = time.time() - step2_start
         print(f"[SUCCESS] Financial analysis complete! Generated {len(summary):,} characters of analysis (took {step2_time:.1f}s)\n")
         sys.stdout.flush()
