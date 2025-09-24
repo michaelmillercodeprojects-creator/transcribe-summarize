@@ -22,9 +22,6 @@ class FinancialTranscribeGUI:
         self.root.geometry("800x600")
         self.root.minsize(600, 400)
         
-        # Check system dependencies on startup
-        self.check_dependencies()
-        
         # Queue for thread communication
         self.log_queue = queue.Queue()
         
@@ -111,6 +108,21 @@ class FinancialTranscribeGUI:
         self.send_email_var = tk.BooleanVar(value=self.config.get("send_email", False))
         ttk.Checkbutton(button_frame, text="Send results via email", 
                        variable=self.send_email_var).pack(side=tk.RIGHT)
+        
+        # Status Panel
+        status_frame = ttk.LabelFrame(main_frame, text="System Status", padding=10)
+        status_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        status_info_frame = ttk.Frame(status_frame)
+        status_info_frame.pack(fill=tk.X)
+        
+        ttk.Label(status_info_frame, text="Status:").pack(side=tk.LEFT)
+        self.status_label = ttk.Label(status_info_frame, text="Ready to Process", 
+                                     foreground="green", font=('Arial', 9, 'bold'))
+        self.status_label.pack(side=tk.LEFT, padx=(5, 0))
+        
+        ttk.Label(status_info_frame, text="|").pack(side=tk.LEFT, padx=(10, 5))
+        ttk.Label(status_info_frame, text="Mode: Direct Processing").pack(side=tk.LEFT)
         
         # Settings Panel
         settings_frame = ttk.LabelFrame(main_frame, text="Settings", padding=10)
@@ -223,14 +235,18 @@ class FinancialTranscribeGUI:
                   command=self.save_log).pack(side=tk.LEFT, padx=(5, 0))
         
         # Status bar
-        self.status_bar = ttk.Label(self.root, text="Ready", relief=tk.SUNKEN)
+        self.status_bar = ttk.Label(self.root, text="Ready to process files and URLs", relief=tk.SUNKEN)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
         
         # Initial log message
-        self.log_message("Financial Audio Transcription Suite started")
+        self.log_message("Financial Audio Transcription Suite started - Ready to process")
+        self.log_message("Click 'Process File' or 'Process URL' to begin transcription")
         
         # Set email toggle to saved default
         self.send_email_var.set(self.config.get("send_email", False))
+        
+        # Check system readiness after GUI is created
+        self.root.after(1000, self.check_system_readiness)
     
     def setup_menu(self):
         """Create the menu bar"""
@@ -250,7 +266,7 @@ class FinancialTranscribeGUI:
         tools_menu.add_command(label="Process File...", command=self.process_file)
         tools_menu.add_command(label="Process URL...", command=self.process_url)
         tools_menu.add_separator()
-        tools_menu.add_command(label="Check Dependencies", command=self.check_dependencies)
+        tools_menu.add_command(label="Check Dependencies", command=self.check_full_dependencies)
         
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -278,6 +294,41 @@ class FinancialTranscribeGUI:
         
         # Schedule next check
         self.root.after(100, self.process_log_queue)
+    
+    def check_system_readiness(self):
+        """Check if system is ready for processing"""
+        try:
+            issues = []
+            
+            # Check for transcription script
+            if not os.path.exists("transcribe_financial.py"):
+                issues.append("transcribe_financial.py not found")
+            
+            # Check for API key
+            api_key = self.config.get("openai_api_key", "")
+            if not api_key and not os.getenv("OPENAI_API_KEY"):
+                issues.append("OpenAI API key not configured")
+            
+            # Update status based on readiness
+            if issues:
+                self.status_label.config(text="Configuration Needed", foreground="orange")
+                for issue in issues:
+                    self.log_message(f"WARNING: {issue}")
+                self.log_message("Please configure settings and ensure required files are present")
+            else:
+                self.status_label.config(text="Ready to Process", foreground="green")
+                self.log_message("System ready - All components available")
+                
+                # Check email configuration
+                email_addr = self.config.get("email_address", "")
+                if email_addr and self.config.get("email_password", ""):
+                    self.log_message("Email delivery configured and ready")
+                else:
+                    self.log_message("Email delivery not configured (optional)")
+                    
+        except Exception as e:
+            self.log_message(f"Error checking system readiness: {e}")
+            self.status_label.config(text="Error", foreground="red")
     
     def save_settings(self):
         """Save current settings"""
@@ -316,13 +367,15 @@ class FinancialTranscribeGUI:
                     key, value = line.strip().split('=', 1)
                     env_dict[key] = value
             
-            # Update with our values
+            # Update with our values (use names expected by transcription script)
             if self.api_key_var.get():
                 env_dict['OPENAI_API_KEY'] = self.api_key_var.get()
             if self.email_address_var.get():
-                env_dict['EMAIL_ADDRESS'] = self.email_address_var.get()
+                env_dict['SENDER_EMAIL'] = self.email_address_var.get()
+                env_dict['EMAIL_ADDRESS'] = self.email_address_var.get()  # Keep for compatibility
             if self.email_password_var.get():
-                env_dict['EMAIL_PASSWORD'] = self.email_password_var.get()
+                env_dict['SENDER_PASSWORD'] = self.email_password_var.get()
+                env_dict['EMAIL_PASSWORD'] = self.email_password_var.get()  # Keep for compatibility
             if self.output_email_var.get():
                 env_dict['OUTPUT_EMAIL'] = self.output_email_var.get()
             
@@ -362,12 +415,17 @@ class FinancialTranscribeGUI:
                 from email.mime.text import MIMEText
                 from email.mime.multipart import MIMEMultipart
                 
+                # Update status
+                self.status_label.config(text="Testing Email", foreground="blue")
+                self.status_bar.config(text="Testing email credentials...")
+                
                 email_addr = self.email_address_var.get()
                 email_pass = self.email_password_var.get()
                 output_email = self.output_email_var.get()
                 
                 if not email_addr or not email_pass:
                     self.log_message("ERROR: Email address and password required for test")
+                    self.status_label.config(text="Email Test Failed", foreground="red")
                     return
                 
                 if not output_email:
@@ -401,9 +459,13 @@ Configuration:
                 server.quit()
                 
                 self.log_message("Email test successful! Check your inbox.")
+                self.status_label.config(text="Ready to Process", foreground="green")
+                self.status_bar.config(text="Email test completed successfully")
                 
             except Exception as e:
                 self.log_message(f"Email test failed: {e}")
+                self.status_label.config(text="Email Test Failed", foreground="red")
+                self.status_bar.config(text="Email test failed")
         
         # Run test in separate thread
         test_thread = threading.Thread(target=run_test, daemon=True)
@@ -457,8 +519,13 @@ Configuration:
         if filename:
             def run_process():
                 try:
+                    # Update status to show processing
+                    self.status_label.config(text="Processing File", foreground="blue")
+                    self.status_bar.config(text="Processing file...")
+                    
                     if not os.path.exists("transcribe_financial.py"):
                         self.log_message("ERROR: transcribe_financial.py not found")
+                        self.status_label.config(text="Error", foreground="red")
                         return
                     
                     self.log_message(f"Processing file: {os.path.basename(filename)}")
@@ -467,6 +534,7 @@ Configuration:
                     cmd = [sys.executable, "transcribe_financial.py", "--input", filename]
                     if self.send_email_var.get() and self.config.get("output_email"):
                         cmd.extend(["--email", self.config.get("output_email")])
+                        self.log_message(f"Email delivery enabled to: {self.config.get('output_email')}")
                     
                     result = subprocess.run(
                         cmd,
@@ -487,19 +555,29 @@ Configuration:
                     
                     if result.returncode == 0:
                         self.log_message("File processing completed successfully")
+                        self.status_label.config(text="Ready to Process", foreground="green")
+                        self.status_bar.config(text="File processing completed")
                     else:
                         self.log_message(f"File processing failed (exit code: {result.returncode})")
+                        self.status_label.config(text="Processing Failed", foreground="red")
+                        self.status_bar.config(text="File processing failed")
                     
                 except subprocess.TimeoutExpired:
                     self.log_message("⚠️ File processing timed out after 30 minutes")
                     self.log_message("This usually happens with very large files or network issues")
                     self.log_message("Try with a smaller file or check your internet connection")
+                    self.status_label.config(text="Processing Timeout", foreground="red")
+                    self.status_bar.config(text="Processing timed out")
                 except FileNotFoundError as e:
                     self.log_message(f"❌ File not found: {e}")
                     self.log_message("Make sure transcribe_financial.py is in the same directory")
+                    self.status_label.config(text="Processing Error", foreground="red")
+                    self.status_bar.config(text="File not found")
                 except Exception as e:
                     self.log_message(f"❌ Error processing file: {e}")
                     self.log_message("Check the error details above for more information")
+                    self.status_label.config(text="Processing Error", foreground="red")
+                    self.status_bar.config(text="Processing error")
             
             # Run in separate thread
             threading.Thread(target=run_process, daemon=True).start()
@@ -547,8 +625,13 @@ Configuration:
         if url:
             def run_process():
                 try:
+                    # Update status to show processing
+                    self.status_label.config(text="Processing URL", foreground="blue")
+                    self.status_bar.config(text="Processing URL...")
+                    
                     if not os.path.exists("transcribe_financial.py"):
                         self.log_message("ERROR: transcribe_financial.py not found")
+                        self.status_label.config(text="Error", foreground="red")
                         return
                     
                     self.log_message(f"Processing URL: {url}")
@@ -557,6 +640,7 @@ Configuration:
                     cmd = [sys.executable, "transcribe_financial.py", "--input", url]
                     if self.send_email_var.get() and self.config.get("output_email"):
                         cmd.extend(["--email", self.config.get("output_email")])
+                        self.log_message(f"Email delivery enabled to: {self.config.get('output_email')}")
                     
                     result = subprocess.run(
                         cmd,
@@ -577,18 +661,26 @@ Configuration:
                     
                     if result.returncode == 0:
                         self.log_message("URL processing completed successfully")
+                        self.status_label.config(text="Ready to Process", foreground="green")
+                        self.status_bar.config(text="URL processing completed")
                     else:
                         self.log_message(f"URL processing failed (exit code: {result.returncode})")
+                        self.status_label.config(text="Processing Failed", foreground="red")
+                        self.status_bar.config(text="URL processing failed")
                     
                 except subprocess.TimeoutExpired:
                     self.log_message("URL processing timed out after 30 minutes")
+                    self.status_label.config(text="Processing Timeout", foreground="red")
+                    self.status_bar.config(text="Processing timed out")
                 except Exception as e:
                     self.log_message(f"Error processing URL: {e}")
+                    self.status_label.config(text="Processing Error", foreground="red")
+                    self.status_bar.config(text="Processing error")
             
             # Run in separate thread
             threading.Thread(target=run_process, daemon=True).start()
     
-    def check_dependencies(self):
+    def check_full_dependencies(self):
         """Check if all required dependencies are available"""
         def run_check():
             missing_deps = []
