@@ -22,16 +22,15 @@ If you have Python installed:
 2. This works on all platforms and provides detailed feedback
 3. After installation, run `python run_app.py`
 
-## 🔑 API Key Setup
+## 🔑 API Key Setup (Automatic!)
 
-After installation, you need an OpenAI API key:
+The installer will automatically prompt you for your OpenAI API key and create the `.env` file:
 
 1. **Get your API key**: Visit https://platform.openai.com/api-keys
-2. **Create `.env` file**: In the project folder, create a file named `.env`
-3. **Add your key**: Put this line in the `.env` file:
-   ```
-   OPENAI_API_KEY=your_actual_api_key_here
-   ```
+2. **During installation**: Just paste your key when prompted
+3. **Done!** The `.env` file is created automatically
+
+**No manual file creation needed!** If you skip during installation, you can add it later when running the app.
 
 ## 🛠️ What Gets Installed
 
@@ -80,5 +79,15 @@ You only need:
 - ✅ An OpenAI API key (pay-per-use, no monthly fees)
 - ✅ Python (free)
 - ✅ The packages we install (all free)
+
+## 🎯 **Super Easy User Experience:**
+
+1. **Download the project**
+2. **Double-click appropriate installer** (`install_windows.bat` or `install_mac_linux.sh`)
+3. **Follow simple prompts** (install Python if needed)
+4. **Enter your OpenAI API key** when prompted (automatic .env creation!)
+5. **Double-click launcher** to start the app!
+
+**Even easier:** If you forgot to add your API key during installation, the launcher will prompt you to add it when you run the app!
 
 Happy analyzing! 📈

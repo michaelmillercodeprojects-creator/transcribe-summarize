@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 echo ========================================
 echo Financial Transcription Tool Installer
 echo ========================================
@@ -40,15 +41,36 @@ if %errorlevel% neq 0 (
 
 echo.
 echo ========================================
+echo Setting Up OpenAI API Key
+echo ========================================
+echo.
+echo You need an OpenAI API key to use this tool.
+echo Get one from: https://platform.openai.com/api-keys
+echo.
+set /p API_KEY="Enter your OpenAI API key: "
+
+if "%API_KEY%"=="" (
+    echo.
+    echo No API key entered. You can add it later by:
+    echo 1. Creating a .env file in this folder
+    echo 2. Adding: OPENAI_API_KEY=your_key_here
+) else (
+    echo OPENAI_API_KEY=%API_KEY% > .env
+    echo.
+    echo API key saved to .env file!
+)
+
+echo.
+echo ========================================
 echo Installation Complete!
 echo ========================================
 echo.
 echo You can now run the application:
-echo - Double-click "run_app.py" to start the GUI
+echo - Double-click "run_windows.bat" to start the GUI
 echo - Or run: python run_app.py
 echo.
-echo Make sure to:
-echo 1. Create a .env file with your OpenAI API key
-echo 2. Add: OPENAI_API_KEY=your_key_here
-echo.
+if "%API_KEY%"=="" (
+    echo Remember to add your OpenAI API key to the .env file!
+    echo.
+)
 pause

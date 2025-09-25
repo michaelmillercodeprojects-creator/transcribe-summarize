@@ -82,15 +82,38 @@ fi
 
 echo
 echo -e "${GREEN}========================================${NC}"
+echo -e "${GREEN}Setting Up OpenAI API Key${NC}"
+echo -e "${GREEN}========================================${NC}"
+echo
+echo "You need an OpenAI API key to use this tool."
+echo "Get one from: https://platform.openai.com/api-keys"
+echo
+echo -n "Enter your OpenAI API key (or press Enter to skip): "
+read API_KEY
+
+if [ -z "$API_KEY" ]; then
+    echo
+    echo -e "${YELLOW}No API key entered. You can add it later by:${NC}"
+    echo "1. Creating a .env file in this folder"
+    echo "2. Adding: OPENAI_API_KEY=your_key_here"
+else
+    echo "OPENAI_API_KEY=$API_KEY" > .env
+    echo
+    echo -e "${GREEN}API key saved to .env file!${NC}"
+fi
+
+echo
+echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Installation Complete!${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo
 echo "You can now run the application:"
-echo -e "${YELLOW}- Run: $PYTHON_CMD run_app.py${NC}"
+echo -e "${YELLOW}- Run: ./run_mac_linux.sh${NC}"
+echo -e "${YELLOW}- Or run: $PYTHON_CMD run_app.py${NC}"
 echo
-echo "Make sure to:"
-echo "1. Create a .env file with your OpenAI API key"
-echo "2. Add: OPENAI_API_KEY=your_key_here"
-echo
+if [ -z "$API_KEY" ]; then
+    echo -e "${YELLOW}Remember to add your OpenAI API key to the .env file!${NC}"
+    echo
+fi
 echo "Press Enter to continue..."
 read

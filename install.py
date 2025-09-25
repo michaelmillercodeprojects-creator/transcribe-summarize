@@ -49,17 +49,33 @@ def install_requirements():
         
         return False
 
-def check_env_file():
-    """Check if .env file exists and remind user about API key"""
-    if not os.path.exists(".env"):
-        print("\n⚠️  .env file not found!")
-        print("\n🔑 You need to create a .env file with your OpenAI API key:")
-        print("1. Create a file named '.env' in this folder")
-        print("2. Add this line: OPENAI_API_KEY=your_api_key_here")
-        print("3. Replace 'your_api_key_here' with your actual OpenAI API key")
-        print("\n🌐 Get your API key from: https://platform.openai.com/api-keys")
+def setup_env_file():
+    """Create .env file and prompt for API key"""
+    if os.path.exists(".env"):
+        print("\n✅ .env file already exists")
+        return
+    
+    print("\n🔑 Setting Up OpenAI API Key")
+    print("=" * 40)
+    print("\nYou need an OpenAI API key to use this tool.")
+    print("🌐 Get one from: https://platform.openai.com/api-keys")
+    print("\n💡 The key will be saved securely in a .env file")
+    
+    api_key = input("\nEnter your OpenAI API key (or press Enter to skip): ").strip()
+    
+    if api_key:
+        try:
+            with open(".env", "w") as f:
+                f.write(f"OPENAI_API_KEY={api_key}\n")
+            print("\n✅ API key saved to .env file!")
+        except Exception as e:
+            print(f"\n❌ Error saving .env file: {e}")
+            print("You can create it manually later.")
     else:
-        print("\n✅ .env file found")
+        print("\n⚠️  No API key entered. You can add it later by:")
+        print("1. Creating a .env file in this folder")
+        print("2. Adding: OPENAI_API_KEY=your_key_here")
+        print("3. Replacing 'your_key_here' with your actual API key")
 
 def main():
     print("==========================================")
@@ -75,7 +91,7 @@ def main():
         input("\nPress Enter to exit...")
         return False
     
-    check_env_file()
+    setup_env_file()
     
     print("\n🎉 ==========================================")
     print("✅ Installation Complete!")

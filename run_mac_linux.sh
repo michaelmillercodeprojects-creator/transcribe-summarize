@@ -25,14 +25,26 @@ fi
 if [ ! -f ".env" ]; then
     echo -e "${YELLOW}WARNING: .env file not found!${NC}"
     echo
-    echo "You need to create a .env file with your OpenAI API key:"
-    echo "1. Create a file named '.env' in this folder"
-    echo "2. Add this line: OPENAI_API_KEY=your_api_key_here"
-    echo "3. Replace 'your_api_key_here' with your actual OpenAI API key"
+    echo "You need an OpenAI API key to use this tool."
+    echo "Would you like to add it now?"
     echo
-    echo "Get your API key from: https://platform.openai.com/api-keys"
-    echo
-    read -p "Press Enter to continue anyway..."
+    echo -n "Enter your OpenAI API key (or press Enter to continue without): "
+    read ADD_KEY
+    
+    if [ ! -z "$ADD_KEY" ]; then
+        echo "OPENAI_API_KEY=$ADD_KEY" > .env
+        echo -e "${GREEN}API key saved to .env file!${NC}"
+        echo
+    else
+        echo
+        echo "You can add your API key later by:"
+        echo "1. Creating a .env file in this folder"
+        echo "2. Adding: OPENAI_API_KEY=your_key_here"
+        echo
+        echo "Get your API key from: https://platform.openai.com/api-keys"
+        echo
+    fi
+    read -p "Press Enter to continue..."
 fi
 
 # Run the application
