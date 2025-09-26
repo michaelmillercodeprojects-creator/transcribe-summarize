@@ -163,6 +163,9 @@ def is_url(path: str) -> bool:
 def is_youtube_url(url: str) -> bool:
     return "youtube.com/watch" in url or "youtu.be/" in url
 
+def is_vimeo_url(url: str) -> bool:
+    """Check if URL is a Vimeo video link."""
+    return "vimeo.com/" in url and any(char.isdigit() for char in url.split("vimeo.com/")[-1])
 def is_dropbox_url(url: str) -> bool:
     """Check if URL is a Dropbox share link."""
     return "dropbox.com" in url and ("sh/" in url or "s/" in url)
@@ -260,8 +263,8 @@ def download_file(url: str) -> str:
     """Download file from URL, YouTube, or file sharing services."""
     original_url = url
     
-    # Handle YouTube URLs
-    if is_youtube_url(url):
+    # Handle YouTube and Vimeo URLs
+    if is_youtube_url(url) or is_vimeo_url(url):
         os.makedirs("audio", exist_ok=True)
         outtmpl = "audio/%(title)s.%(ext)s"
         cmd = ["yt-dlp", "-x", "--audio-format", "mp3", url, "-o", outtmpl]
@@ -275,6 +278,20 @@ def download_file(url: str) -> str:
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"yt-dlp failed: {e.stderr.decode()}")
     
+        # Handle YouTube and Vimeo URLs
+        if is_youtube_url(url) or is_vimeo_url(url):
+            os.makedirs("audio", exist_ok=True)
+            outtmpl = "audio/%(title)s.%(ext)s"
+            cmd = ["yt-dlp", "-x", "--audio-format", "mp3", url, "-o", outtmpl]
+            try:
+                subprocess.run(cmd, check=True)
+                import glob
+                mp3_files = glob.glob("audio/*.mp3")
+                if not mp3_files:
+                    raise RuntimeError("yt-dlp did not produce any .mp3 files")
+                return max(mp3_files, key=os.path.getctime)
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"yt-dlp failed: {e.stderr.decode()}")
     # Handle Zoom recordings with yt-dlp (often works better than direct download)
     if is_zoom_url(url):
         os.makedirs("audio", exist_ok=True)
@@ -827,7 +844,7 @@ def create_pdf_report(summary: str, transcript: str, output_path: str, source_fi
 
 def main():
     parser = argparse.ArgumentParser(description="Financial Audio Transcription and Analysis Tool")
-    parser.add_argument("--input", required=True, help="Path, URL, or sharing link to audio/video file (supports Dropbox, Google Drive, Zoom, YouTube)")
+    parser.add_argument("--input", required=True, help="Path, URL, or sharing link to audio/video file (supports Dropbox, Google Drive, Zoom, YouTube, Vimeo)")
     parser.add_argument("--email", help="Email address to send results to")
     parser.add_argument("--subject", help="Email subject line")
     parser.add_argument("--transcribe-model", default="whisper-1", help="Whisper model to use for transcription")
