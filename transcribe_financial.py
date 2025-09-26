@@ -446,72 +446,69 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
     sys.stdout.flush()
     client = openai.OpenAI(api_key=api_key)
     
-    prompt = f"""You are a senior institutional investment analyst creating a comprehensive research report. Analyze this financial transcript and provide detailed, actionable investment insights based ONLY on information explicitly mentioned in the transcript.
+    prompt = f"""You are a senior institutional investment analyst creating a comprehensive research report. Analyze this financial transcript and extract ONLY the specific investment insights, ideas, and data that the speakers actually discussed.
 
 <b>CRITICAL REQUIREMENTS - DO NOT FABRICATE DATA:</b>
 - ONLY use numbers, percentages, price targets, and timeframes explicitly mentioned in the transcript
 - DO NOT invent or estimate financial figures not stated by the speakers
-- If specific numbers aren't mentioned, use qualitative analysis instead
-- Create LONG, detailed bullet points (3-4 sentences minimum each)
+- DO NOT create sections if the speakers didn't discuss those topics
+- Create detailed bullet points (100-150 words each) ONLY for topics that were actually covered
 - Embed exact quotes naturally within the bullet point text
 - Use • symbol for bullets only, no other formatting
 - Write in professional institutional language
 
-<b>ANALYSIS STRUCTURE:</b>
+<b>CONTENT-DRIVEN ANALYSIS APPROACH:</b>
 
-1. Macro Market Views
-Create 4-5 comprehensive bullet points covering:
-• <b>Economic policy impacts and market implications</b>: Analyze the speakers' views on how economic policies will affect different asset classes, using ONLY their specific timeframes and expectations. Include exact quotes: "The Federal Reserve's approach suggests [exact quote about Fed policy], which the speaker believes will impact growth stocks by [only mention specific impacts they stated]."
+Analyze the transcript and create bullet points ONLY for the topics and insights the speakers actually discussed. Use these potential categories, but SKIP any category where speakers provided no meaningful content:
 
-• <b>Sector dynamics and trends</b>: Detail sector views expressed by speakers with their specific reasoning and any quantitative expectations they provided. Format: "Energy sector outlook appears [speaker sentiment] based on [exact quote about energy fundamentals], with the speaker highlighting [only specific factors they mentioned]."
+<b>MARKET INSIGHTS (if discussed):</b>
+• Extract any specific market views, economic outlook, sector analysis, or macro themes mentioned
+• Include exact timeframes, percentages, or targets if provided by speakers
+• Quote speaker reasoning and supporting arguments
 
-• <b>Currency and commodity perspectives</b>: Summarize speakers' views on FX and commodity moves using their exact predictions and reasoning. "Dollar trends were described as [exact quote about dollar], with the speaker expecting [only their stated expectations] for emerging markets."
+<b>SPECIFIC INVESTMENT IDEAS (if discussed):</b>
+• Capture any individual stock recommendations, price targets, or specific company analysis
+• Include speaker rationale, catalysts, and risk/reward perspectives mentioned
+• Note any specific entry/exit levels, position sizing, or timing guidance provided
 
-• <b>Interest rate environment and positioning</b>: Explain speakers' rate expectations and fixed income views using only their stated positions and reasoning.
+<b>SECTOR/THEMATIC OPPORTUNITIES (if discussed):</b>
+• Document any sector rotations, industry trends, or thematic plays mentioned
+• Include specific ETFs, sectors, or investment themes discussed
+• Capture any quantitative expectations or comparative analysis provided
 
-• <b>Geopolitical factors and risk assessment</b>: Detail geopolitical concerns raised by speakers and their specific impact assessments.
+<b>TRADING STRATEGIES & POSITIONING (if discussed):</b>  
+• Detail any specific trading approaches, options strategies, or hedging mentioned
+• Include portfolio positioning, asset allocation, or tactical moves discussed
+• Note any risk management approaches or defensive strategies covered
 
-2. Investment Ideas and Opportunities
-Create 5-6 detailed points based on what speakers actually discussed:
-• <b>Specific equity recommendations</b>: Detail any stock recommendations made by speakers with their exact reasoning, price targets (if mentioned), and catalysts they identified. "Company [name if mentioned] was highlighted because [exact quote about company fundamentals], with the speaker noting [only specific catalysts they mentioned]."
+<b>GEOGRAPHIC/INTERNATIONAL THEMES (if discussed):</b>
+• Capture any country-specific, regional, or international investment themes
+• Include currency views, emerging market perspectives, or global allocation ideas
+• Note any geopolitical factors affecting investment decisions
 
-• <b>Sector and thematic opportunities</b>: Summarize sector recommendations with speakers' specific reasoning and any return expectations they provided.
+<b>ALTERNATIVE INVESTMENTS (if discussed):</b>
+• Document any REIT, commodity, crypto, or alternative strategy discussions
+• Include fixed income, credit, or yield-focused opportunities mentioned
+• Note any inflation hedges or portfolio diversification strategies covered
 
-• <b>Trading strategies and positioning</b>: When mentioned, detail specific trading ideas, options strategies, or hedging approaches discussed by speakers.
+<b>CRITICAL EXECUTION GUIDELINES:</b>
+- If speakers didn't discuss a category meaningfully, SKIP IT entirely
+- Focus on extracting the most valuable, actionable insights with numbers and specifics
+- Each bullet should be substantive (100-150 words) with embedded quotes
+- Prioritize content that includes specific data, targets, or quantitative elements
+- Use speaker names if mentioned to attribute insights appropriately
+- Maintain professional institutional language throughout
 
-• <b>International and regional opportunities</b>: Identify geographic investment themes speakers discussed with their specific reasoning.
-
-• <b>Fixed income and credit views</b>: Detail bond and credit strategies mentioned by speakers with their reasoning.
-
-• <b>Alternative investments</b>: Cover any REIT, commodity, or alternative strategies specifically discussed.
-
-3. Portfolio Insights and Risk Management
-Create 3-4 comprehensive points on:
-• <b>Asset allocation perspectives</b>: Summarize any allocation recommendations speakers made with their specific reasoning and weightings (if provided).
-
-• <b>Risk management approaches</b>: Detail specific hedging or risk management strategies speakers discussed.
-
-• <b>Implementation considerations</b>: Provide timing and implementation guidance based on speakers' views.
-
-• <b>Key risks and monitoring points</b>: Identify specific risks speakers highlighted and their suggested monitoring approaches.
-
-<b>STRICT WRITING REQUIREMENTS:</b>
-- Each bullet point must be 100-150 words minimum
-- Use ONLY information explicitly stated in the transcript
-- Use <b>bold tags</b> instead of asterisks for emphasis (never use **text**)
-- Seamlessly integrate exact quotes within bullet text using "quotation marks"
-- Include specific numbers ONLY when speakers provided them
-- Use qualitative descriptions when quantitative data wasn't provided
-- Mention specific companies, ETFs, sectors ONLY when speakers discussed them
-- Provide risk-reward perspectives ONLY based on speakers' stated views
-- Include implementation details ONLY when speakers provided guidance
-
-<b>CRITICAL:</b> Do not fabricate any financial data, price targets, percentages, or predictions not explicitly mentioned by the speakers in the transcript.
+<b>ABSOLUTE REQUIREMENTS:</b>
+- Use <b>bold tags</b> for emphasis, never asterisks
+- Include exact quotes using "quotation marks"
+- Never fabricate numbers, percentages, price targets, or predictions
+- Skip empty or speculative analysis - stick strictly to transcript content
 
 Transcript to analyze:
 {transcript}
 
-Generate a comprehensive analysis following this structure, using ONLY information from the transcript and avoiding any fabricated financial data or predictions."""
+Generate a content-driven analysis that focuses ONLY on the specific insights and ideas the speakers actually discussed. Skip any categories where they provided no meaningful content."""
 
     try:
         import time, threading
