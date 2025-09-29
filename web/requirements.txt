@@ -1,0 +1,10 @@
+flask==3.1.2
+openai
+python-dotenv
+requests
+yt-dlp
+beautifulsoup4
+reportlab
+PyVimeo
+requests-oauthlib
+werkzeug==3.1.3

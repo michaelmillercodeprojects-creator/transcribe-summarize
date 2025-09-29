@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Financial Transcription Tool{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="text-center mb-4">
+            <h1><i class="fas fa-cog me-2"></i>Settings</h1>
+            <p class="text-muted">Configure API keys and email settings</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('save_settings_route') }}">
+            <!-- API Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-key me-2"></i>API Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="openai_api_key" class="form-label">OpenAI API Key <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="openai_api_key" name="openai_api_key" 
+                                   value="{{ settings.openai_api_key if settings.openai_api_key else '' }}" 
+                                   placeholder="sk-...">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('openai_api_key')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            Required for transcription and analysis. Get your API key from 
+                            <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Configuration -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Email Configuration (Optional)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Configure email settings to automatically send analysis results via email
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sender_email" class="form-label">Sender Email (Gmail)</label>
+                        <input type="email" class="form-control" id="sender_email" name="sender_email" 
+                               value="{{ settings.sender_email if settings.sender_email else '' }}" 
+                               placeholder="your-email@gmail.com">
+                        <div class="form-text">
+                            Use a Gmail address for sending reports
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sender_password" class="form-label">App Password</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="sender_password" name="sender_password" 
+                                   value="{{ settings.sender_password if settings.sender_password else '' }}" 
+                                   placeholder="Gmail App Password">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('sender_password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">
+                            Use a Gmail App Password, not your regular password. 
+                            <a href="https://support.google.com/accounts/answer/185833" target="_blank">Learn how to create one</a>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="output_email" class="form-label">Default Recipient Email</label>
+                        <input type="email" class="form-control" id="output_email" name="output_email" 
+                               value="{{ settings.output_email if settings.output_email else '' }}" 
+                               placeholder="recipient@example.com">
+                        <div class="form-text">
+                            Default email address to receive analysis reports
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Status -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>System Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-{{ 'check-circle text-success' if settings.openai_api_key else 'times-circle text-danger' }} me-2"></i>
+                                <span>OpenAI API Key: {{ 'Configured' if settings.openai_api_key else 'Not Configured' }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-{{ 'check-circle text-success' if settings.sender_email and settings.sender_password else 'times-circle text-warning' }} me-2"></i>
+                                <span>Email Settings: {{ 'Configured' if settings.sender_email and settings.sender_password else 'Not Configured' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save me-2"></i>Save Settings
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg ms-2">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Home
+                </a>
+            </div>
+        </form>
+
+        <!-- Help Section -->
+        <div class="card mt-5">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Setup Help</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="helpAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingOpenAI">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapseOpenAI">
+                                How to get OpenAI API Key
+                            </button>
+                        </h2>
+                        <div id="collapseOpenAI" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <ol>
+                                    <li>Go to <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a></li>
+                                    <li>Sign in or create an account</li>
+                                    <li>Click "Create new secret key"</li>
+                                    <li>Copy the key (starts with "sk-")</li>
+                                    <li>Paste it in the API Key field above</li>
+                                </ol>
+                                <div class="alert alert-warning mt-2">
+                                    <strong>Cost:</strong> Approximately $0.006 per minute of audio for transcription + analysis costs.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingEmail">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    data-bs-target="#collapseEmail">
+                                How to setup Gmail for email reports
+                            </button>
+                        </h2>
+                        <div id="collapseEmail" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <ol>
+                                    <li>Enable 2-factor authentication on your Gmail account</li>
+                                    <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank">Google App Passwords</a></li>
+                                    <li>Generate a new app password for "Mail"</li>
+                                    <li>Use your Gmail address and the generated app password above</li>
+                                </ol>
+                                <div class="alert alert-info mt-2">
+                                    <strong>Note:</strong> Email configuration is optional. You can still download results manually.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.nextElementSibling.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        button.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        button.className = 'fas fa-eye';
+    }
+}
+</script>
+{% endblock %}
