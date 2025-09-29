@@ -151,6 +151,49 @@ class FinancialTranscribeGUI:
                                         command=self.toggle_api_key_visibility)
         self.toggle_api_btn.pack(side=tk.RIGHT, padx=(5, 0))
         
+        # Vimeo API credentials section
+        ttk.Separator(api_frame, orient='horizontal').pack(fill=tk.X, pady=(10, 10))
+        ttk.Label(api_frame, text="Vimeo API (for private videos):", font=('Arial', 9, 'bold')).pack(anchor=tk.W, pady=(0, 5))
+        
+        # Vimeo Client ID row
+        vimeo_id_frame = ttk.Frame(api_frame)
+        vimeo_id_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(vimeo_id_frame, text="Vimeo Client ID:", width=18).pack(side=tk.LEFT)
+        self.vimeo_client_id_var = tk.StringVar(value=self.config.get("vimeo_client_id", ""))
+        self.vimeo_client_id_entry = ttk.Entry(vimeo_id_frame, textvariable=self.vimeo_client_id_var, width=35)
+        self.vimeo_client_id_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Vimeo Client Secret row
+        vimeo_secret_frame = ttk.Frame(api_frame)
+        vimeo_secret_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(vimeo_secret_frame, text="Vimeo Client Secret:", width=18).pack(side=tk.LEFT)
+        self.vimeo_client_secret_var = tk.StringVar(value=self.config.get("vimeo_client_secret", ""))
+        self.vimeo_client_secret_entry = ttk.Entry(vimeo_secret_frame, textvariable=self.vimeo_client_secret_var, show="*", width=35)
+        self.vimeo_client_secret_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Show/Hide Vimeo secret button
+        self.show_vimeo_secret = False
+        self.toggle_vimeo_btn = ttk.Button(vimeo_secret_frame, text="Show", width=6,
+                                          command=self.toggle_vimeo_secret_visibility)
+        self.toggle_vimeo_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        
+        # Vimeo Access Token row (optional for some use cases)
+        vimeo_token_frame = ttk.Frame(api_frame)
+        vimeo_token_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(vimeo_token_frame, text="Vimeo Access Token:", width=18).pack(side=tk.LEFT)
+        self.vimeo_access_token_var = tk.StringVar(value=self.config.get("vimeo_access_token", ""))
+        self.vimeo_access_token_entry = ttk.Entry(vimeo_token_frame, textvariable=self.vimeo_access_token_var, show="*", width=35)
+        self.vimeo_access_token_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Show/Hide Vimeo token button
+        self.show_vimeo_token = False
+        self.toggle_vimeo_token_btn = ttk.Button(vimeo_token_frame, text="Show", width=6,
+                                                command=self.toggle_vimeo_token_visibility)
+        self.toggle_vimeo_token_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        
         # Output Email row (where reports are sent)
         output_email_frame = ttk.Frame(api_frame)
         output_email_frame.pack(fill=tk.X, pady=(0, 8))
@@ -338,6 +381,9 @@ class FinancialTranscribeGUI:
             self.config["openai_api_key"] = self.api_key_var.get()
             self.config["email_address"] = self.email_address_var.get()
             self.config["email_password"] = self.email_password_var.get()
+            self.config["vimeo_client_id"] = self.vimeo_client_id_var.get()
+            self.config["vimeo_client_secret"] = self.vimeo_client_secret_var.get()
+            self.config["vimeo_access_token"] = self.vimeo_access_token_var.get()
             
             # Also save to .env file for the transcription scripts
             self.save_to_env()
@@ -378,6 +424,12 @@ class FinancialTranscribeGUI:
                 env_dict['EMAIL_PASSWORD'] = self.email_password_var.get()  # Keep for compatibility
             if self.output_email_var.get():
                 env_dict['OUTPUT_EMAIL'] = self.output_email_var.get()
+            if self.vimeo_client_id_var.get():
+                env_dict['VIMEO_CLIENT_ID'] = self.vimeo_client_id_var.get()
+            if self.vimeo_client_secret_var.get():
+                env_dict['VIMEO_CLIENT_SECRET'] = self.vimeo_client_secret_var.get()
+            if self.vimeo_access_token_var.get():
+                env_dict['VIMEO_ACCESS_TOKEN'] = self.vimeo_access_token_var.get()
             
             # Write back to .env file
             with open('.env', 'w') as f:
@@ -406,6 +458,26 @@ class FinancialTranscribeGUI:
         else:
             self.email_password_entry.config(show="*")
             self.toggle_pass_btn.config(text="Show")
+    
+    def toggle_vimeo_secret_visibility(self):
+        """Toggle Vimeo client secret visibility"""
+        self.show_vimeo_secret = not self.show_vimeo_secret
+        if self.show_vimeo_secret:
+            self.vimeo_client_secret_entry.config(show="")
+            self.toggle_vimeo_btn.config(text="Hide")
+        else:
+            self.vimeo_client_secret_entry.config(show="*")
+            self.toggle_vimeo_btn.config(text="Show")
+    
+    def toggle_vimeo_token_visibility(self):
+        """Toggle Vimeo access token visibility"""
+        self.show_vimeo_token = not self.show_vimeo_token
+        if self.show_vimeo_token:
+            self.vimeo_access_token_entry.config(show="")
+            self.toggle_vimeo_token_btn.config(text="Hide")
+        else:
+            self.vimeo_access_token_entry.config(show="*")
+            self.toggle_vimeo_token_btn.config(text="Show")
     
     def test_email_credentials(self):
         """Test email credentials by sending a test message"""

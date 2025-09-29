@@ -4,3 +4,5 @@ requests
 yt-dlp
 beautifulsoup4
 reportlab
+PyVimeo
+requests-oauthlib

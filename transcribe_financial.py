@@ -22,6 +22,7 @@ import imaplib
 import email
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 from datetime import datetime
 
 try:
@@ -259,12 +260,158 @@ def convert_sharing_url(url: str) -> str:
     # Default: return as-is
     return url
 
+def get_vimeo_credentials():
+    """Get Vimeo API credentials from environment variables."""
+    client_id = os.getenv("VIMEO_CLIENT_ID")
+    client_secret = os.getenv("VIMEO_CLIENT_SECRET")
+    access_token = os.getenv("VIMEO_ACCESS_TOKEN")
+    
+    return client_id, client_secret, access_token
+
+def authenticate_vimeo():
+    """Authenticate with Vimeo API and return access token."""
+    client_id, client_secret, access_token = get_vimeo_credentials()
+    
+    # If we already have an access token, try to use it
+    if access_token:
+        try:
+            # Test the token with a simple API call
+            headers = {"Authorization": f"Bearer {access_token}"}
+            response = requests.get("https://api.vimeo.com/me", headers=headers)
+            if response.status_code == 200:
+                print("Using existing Vimeo access token")
+                return access_token
+            else:
+                print("Existing Vimeo access token is invalid, attempting to refresh")
+        except Exception as e:
+            print(f"Error testing Vimeo token: {e}")
+    
+    # If no access token or it's invalid, try to get a new one using client credentials
+    if client_id and client_secret:
+        try:
+            # Use client credentials grant for app-only access
+            auth_url = "https://api.vimeo.com/oauth/authorize/client"
+            auth_data = {
+                "grant_type": "client_credentials",
+                "scope": "public private"
+            }
+            auth_response = requests.post(
+                auth_url,
+                data=auth_data,
+                auth=(client_id, client_secret)
+            )
+            
+            if auth_response.status_code == 200:
+                token_data = auth_response.json()
+                access_token = token_data.get("access_token")
+                print("Successfully obtained new Vimeo access token")
+                return access_token
+            else:
+                print(f"Failed to get Vimeo access token: {auth_response.status_code}")
+        except Exception as e:
+            print(f"Error authenticating with Vimeo: {e}")
+    
+    print("No Vimeo credentials found or authentication failed. Will try public access.")
+    return None
+
+def download_vimeo_with_auth(url: str, access_token: str = None) -> str:
+    """Download Vimeo video with authentication if available."""
+    try:
+        # Try with authentication first if available
+        if access_token:
+            print("Attempting Vimeo download with authentication...")
+            
+            # Extract video ID from URL
+            video_id = None
+            if "vimeo.com/" in url:
+                parts = url.split("vimeo.com/")[-1].split("/")[0].split("?")[0]
+                if parts.isdigit():
+                    video_id = parts
+            
+            if video_id:
+                # Get video info with authentication
+                headers = {"Authorization": f"Bearer {access_token}"}
+                api_response = requests.get(f"https://api.vimeo.com/videos/{video_id}", headers=headers)
+                
+                if api_response.status_code == 200:
+                    video_data = api_response.json()
+                    print(f"Successfully authenticated with Vimeo for video: {video_data.get('name', 'Unknown')}")
+                    
+                    # Get download links if available
+                    download_links = video_data.get("download")
+                    if download_links:
+                        # Choose the best quality audio/video
+                        for download in download_links:
+                            if download.get("type") == "video/mp4":
+                                direct_url = download.get("link")
+                                if direct_url:
+                                    print("Found direct download link via Vimeo API")
+                                    # Download using the direct link
+                                    return download_direct_file(direct_url, "vimeo_authenticated")
+        
+        # Fallback to yt-dlp (works for public videos and some private ones)
+        print("Attempting Vimeo download with yt-dlp...")
+        os.makedirs("audio", exist_ok=True)
+        outtmpl = "audio/vimeo_%(title)s.%(ext)s"
+        
+        cmd = ["yt-dlp", "-x", "--audio-format", "mp3", url, "-o", outtmpl]
+        
+        # Add authentication to yt-dlp if we have credentials
+        if access_token:
+            cmd.extend(["--add-header", f"Authorization:Bearer {access_token}"])
+        
+        subprocess.run(cmd, check=True)
+        
+        import glob
+        mp3_files = glob.glob("audio/vimeo_*.mp3")
+        if not mp3_files:
+            raise RuntimeError("yt-dlp did not produce any .mp3 files for Vimeo")
+        return max(mp3_files, key=os.path.getctime)
+        
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Vimeo download failed: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Vimeo authentication/download error: {e}")
+
+def download_direct_file(url: str, prefix: str = "download") -> str:
+    """Download a file directly from a URL."""
+    try:
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
+        
+        # Get file extension from content type or URL
+        content_type = response.headers.get('content-type', '')
+        if 'audio' in content_type:
+            ext = 'mp3'
+        elif 'video' in content_type:
+            ext = 'mp4'
+        else:
+            ext = 'mp4'  # default
+        
+        os.makedirs("audio", exist_ok=True)
+        filename = f"audio/{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
+        
+        with open(filename, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        print(f"Downloaded file: {filename}")
+        return filename
+        
+    except Exception as e:
+        raise RuntimeError(f"Direct download failed: {e}")
+
 def download_file(url: str) -> str:
     """Download file from URL, YouTube, or file sharing services."""
     original_url = url
     
-    # Handle YouTube and Vimeo URLs
-    if is_youtube_url(url) or is_vimeo_url(url):
+    # Handle Vimeo URLs with authentication
+    if is_vimeo_url(url):
+        access_token = authenticate_vimeo()
+        return download_vimeo_with_auth(url, access_token)
+    
+    # Handle YouTube URLs
+    if is_youtube_url(url):
         os.makedirs("audio", exist_ok=True)
         outtmpl = "audio/%(title)s.%(ext)s"
         cmd = ["yt-dlp", "-x", "--audio-format", "mp3", url, "-o", outtmpl]
@@ -276,22 +423,8 @@ def download_file(url: str) -> str:
                 raise RuntimeError("yt-dlp did not produce any .mp3 files")
             return max(mp3_files, key=os.path.getctime)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"yt-dlp failed: {e.stderr.decode()}")
+            raise RuntimeError(f"yt-dlp failed: {e.stderr.decode() if e.stderr else str(e)}")
     
-        # Handle YouTube and Vimeo URLs
-        if is_youtube_url(url) or is_vimeo_url(url):
-            os.makedirs("audio", exist_ok=True)
-            outtmpl = "audio/%(title)s.%(ext)s"
-            cmd = ["yt-dlp", "-x", "--audio-format", "mp3", url, "-o", outtmpl]
-            try:
-                subprocess.run(cmd, check=True)
-                import glob
-                mp3_files = glob.glob("audio/*.mp3")
-                if not mp3_files:
-                    raise RuntimeError("yt-dlp did not produce any .mp3 files")
-                return max(mp3_files, key=os.path.getctime)
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(f"yt-dlp failed: {e.stderr.decode()}")
     # Handle Zoom recordings with yt-dlp (often works better than direct download)
     if is_zoom_url(url):
         os.makedirs("audio", exist_ok=True)
@@ -469,52 +602,67 @@ def create_financial_summary(transcript: str, model: str = "gpt-4o") -> str:
 - ONLY use numbers, percentages, price targets, and timeframes explicitly mentioned in the transcript
 - DO NOT invent or estimate financial figures not stated by the speakers
 - DO NOT create sections if the speakers didn't discuss those topics
-- Create detailed bullet points (100-150 words each) ONLY for topics that were actually covered
-- Embed exact quotes naturally within the bullet point text
+- Create detailed bullet points with evidence justification from transcript quotes
+- Always support analysis with specific evidence: "According to the speaker, '[exact quote]'" or "As mentioned, '[quote]'"
 - Use • symbol for bullets only, no other formatting
-- Write in professional institutional language
+- Write in professional institutional language with tight, justified text
+- **Bold key actionable items** like "Specific Trade Ideas" or "Key Opportunities"
+
+<b>FORMAT REQUIREMENTS:</b>
+- Start with a concise executive summary paragraph (2-3 sentences)
+- Follow with chronological bullet point highlights of key insights
+- Minimize white space between sections
+- Each bullet point should cite specific transcript evidence
+- Bold any actionable investment recommendations or trade ideas
 
 <b>CONTENT-DRIVEN ANALYSIS APPROACH:</b>
+
+Begin with:
+**EXECUTIVE SUMMARY**
+Provide a 2-3 sentence overview of the key themes and most important actionable insights discussed.
+
+**KEY HIGHLIGHTS** (in chronological order as discussed):
 
 Analyze the transcript and create bullet points ONLY for the topics and insights the speakers actually discussed. Use these potential categories, but SKIP any category where speakers provided no meaningful content:
 
 <b>MARKET INSIGHTS (if discussed):</b>
 • Extract any specific market views, economic outlook, sector analysis, or macro themes mentioned
-• Include exact timeframes, percentages, or targets if provided by speakers
-• Quote speaker reasoning and supporting arguments
+• Include exact timeframes, percentages, or targets if provided by speakers  
+• Quote speaker reasoning: "The speaker noted '[exact quote]' when discussing..."
 
-<b>SPECIFIC INVESTMENT IDEAS (if discussed):</b>
-• Capture any individual stock recommendations, price targets, or specific company analysis
-• Include speaker rationale, catalysts, and risk/reward perspectives mentioned
+<b>**SPECIFIC TRADE IDEAS** (if discussed):</b>
+• **Bold this section header** - Capture any individual stock recommendations, price targets, or specific company analysis
+• Include speaker rationale with supporting quotes: "As stated, '[quote]'"
 • Note any specific entry/exit levels, position sizing, or timing guidance provided
 
 <b>SECTOR/THEMATIC OPPORTUNITIES (if discussed):</b>
 • Document any sector rotations, industry trends, or thematic plays mentioned
-• Include specific ETFs, sectors, or investment themes discussed
-• Capture any quantitative expectations or comparative analysis provided
+• Include specific ETFs, sectors, or investment themes discussed  
+• Support with transcript evidence: "According to the discussion, '[quote]'"
 
 <b>TRADING STRATEGIES & POSITIONING (if discussed):</b>  
 • Detail any specific trading approaches, options strategies, or hedging mentioned
 • Include portfolio positioning, asset allocation, or tactical moves discussed
-• Note any risk management approaches or defensive strategies covered
+• Justify with speaker quotes and reasoning
 
 <b>GEOGRAPHIC/INTERNATIONAL THEMES (if discussed):</b>
 • Capture any country-specific, regional, or international investment themes
 • Include currency views, emerging market perspectives, or global allocation ideas
-• Note any geopolitical factors affecting investment decisions
+• Reference specific transcript statements as evidence
 
 <b>ALTERNATIVE INVESTMENTS (if discussed):</b>
 • Document any REIT, commodity, crypto, or alternative strategy discussions
 • Include fixed income, credit, or yield-focused opportunities mentioned
-• Note any inflation hedges or portfolio diversification strategies covered
+• Support analysis with quoted material from transcript
 
 <b>CRITICAL EXECUTION GUIDELINES:</b>
 - If speakers didn't discuss a category meaningfully, SKIP IT entirely
 - Focus on extracting the most valuable, actionable insights with numbers and specifics
-- Each bullet should be substantive (100-150 words) with embedded quotes
-- Prioritize content that includes specific data, targets, or quantitative elements
+- Each bullet should include supporting transcript evidence in quotes
+- **Bold any actionable trade recommendations or specific opportunities**
+- Maintain tight formatting with minimal white space
 - Use speaker names if mentioned to attribute insights appropriately
-- Maintain professional institutional language throughout
+- Maintain professional institutional language throughout"
 
 <b>ABSOLUTE REQUIREMENTS:</b>
 - Use <b>bold tags</b> for emphasis, never asterisks
@@ -560,39 +708,38 @@ Generate a content-driven analysis that focuses ONLY on the specific insights an
         raise RuntimeError(f"Financial analysis failed: {e}")
 
 def markdown_to_html(text: str) -> str:
-    """Convert clean text format to HTML for email formatting."""
+    """Convert clean text format to HTML for email formatting with minimal white space."""
     import re
     
-    # Convert ## headers to HTML headers
-    text = re.sub(r'^##\s+(.+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 25px;">\1</h2>', text, flags=re.MULTILINE)
+    # Convert ## headers to HTML headers with reduced spacing
+    text = re.sub(r'^##\s+(.+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 3px; margin: 15px 0 8px 0; font-size: 16px;">\1</h2>', text, flags=re.MULTILINE)
     
-    # Convert numbered sections to headers
-    text = re.sub(r'^(\d+\.\s+[^•\n]+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 25px;">\1</h2>', text, flags=re.MULTILINE)
+    # Convert numbered sections and **headers** to headers  
+    text = re.sub(r'^(\d+\.\s+[^•\n]+)$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 3px; margin: 15px 0 8px 0; font-size: 16px;">\1</h2>', text, flags=re.MULTILINE)
+    text = re.sub(r'^\*\*([^*]+)\*\*$', r'<h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 3px; margin: 15px 0 8px 0; font-size: 16px;">\1</h2>', text, flags=re.MULTILINE)
     
-    # Convert **text** to bold tags first
-    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    # Convert **text** to bold tags with special highlight for actionable items
+    text = re.sub(r'\*\*([Ss]pecific [Tt]rade [Ii]deas?|[Kk]ey [Oo]pportunities?|[Aa]ctionable?)\*\*', r'<strong style="color: #e74c3c; font-weight: bold; background-color: #fef9e7; padding: 2px 4px;">\1</strong>', text)
+    text = re.sub(r'\*\*(.*?)\*\*', r'<strong style="color: #2c3e50; font-weight: bold;">\1</strong>', text)
     
-    # Convert bold tags to proper HTML bold with styling
-    text = re.sub(r'<b>(.*?)</b>', r'<strong style="color: #2c3e50; font-weight: bold;">\1</strong>', text)
+    # Convert bullet points (• symbol) with proper indentation to prevent wrapping under bullet
+    text = re.sub(r'^•\s+(.+)$', r'<li style="margin: 3px 0; padding-left: 5px; text-indent: 0;">\1</li>', text, flags=re.MULTILINE)
     
-    # Convert bullet points (• symbol)
-    text = re.sub(r'^•\s+(.+)$', r'<li>\1</li>', text, flags=re.MULTILINE)
+    # Wrap consecutive <li> items in <ul> with reduced spacing
+    text = re.sub(r'(<li.*?>.*?</li>(?:\s*<li.*?>.*?</li>)*)', r'<ul style="margin: 8px 0; padding-left: 18px; list-style-position: outside;">\1</ul>', text, flags=re.DOTALL)
     
-    # Wrap consecutive <li> items in <ul>
-    text = re.sub(r'(<li>.*?</li>(?:\s*<li>.*?</li>)*)', r'<ul style="margin: 15px 0; padding-left: 20px;">\1</ul>', text, flags=re.DOTALL)
-    
-    # Convert line breaks
-    text = text.replace('\n\n', '</p><p style="margin: 15px 0;">')
+    # Convert line breaks with minimal spacing
+    text = text.replace('\n\n', '</p><p style="margin: 8px 0;">')
     text = text.replace('\n', '<br>')
     
-    # Wrap remaining text in paragraphs
+    # Wrap remaining text in paragraphs with reduced margins
     if not text.startswith('<'):
-        text = f'<p style="margin: 15px 0;">{text}</p>'
+        text = f'<p style="margin: 8px 0;">{text}</p>'
     
     return text
 
-def send_email_summary(summary: str, transcript: str, recipient: str, subject: str = None):
-    """Send summary and transcript via email with HTML formatting."""
+def send_email_summary(summary: str, transcript: str, recipient: str, subject: str = None, source_filename: str = ""):
+    """Send summary in email body with full transcript + summary as PDF attachment."""
     sender_email = os.getenv("SENDER_EMAIL")
     sender_password = os.getenv("SENDER_PASSWORD")
     
@@ -600,36 +747,39 @@ def send_email_summary(summary: str, transcript: str, recipient: str, subject: s
         print("Email credentials not found. Please set SENDER_EMAIL and SENDER_PASSWORD in .env file")
         return False
     
-    if not subject:
-        subject = f"Financial Analysis Summary - {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    # Extract title for subject line
+    if source_filename:
+        call_title = extract_title_from_filename(source_filename)
+    else:
+        call_title = "Summary of Financial Call"
     
-    # Convert markdown summary to HTML
+    if not subject:
+        subject = f"{call_title} - {datetime.now().strftime('%Y-%m-%d')}"
+    
+    # Convert markdown summary to HTML for email body
     html_summary = markdown_to_html(summary)
     
-    # Create HTML email content
+    # Create clean email body with just the summary
     html_body = f"""
     <html>
     <head>
         <style>
-            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }}
-            h1 {{ color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }}
-            h2 {{ color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 30px; }}
-            h3 {{ color: #34495e; margin-top: 25px; }}
-            strong {{ color: #2c3e50; }}
-            ul {{ padding-left: 20px; }}
-            li {{ margin: 5px 0; }}
-            .transcript {{ background-color: #f8f9fa; padding: 20px; border-left: 4px solid #3498db; margin-top: 30px; }}
-            .separator {{ border-top: 3px solid #3498db; margin: 30px 0; padding-top: 20px; }}
+            body {{ font-family: Arial, sans-serif; line-height: 1.5; color: #333; max-width: 700px; margin: 0 auto; padding: 15px; }}
+            h2 {{ color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 3px; margin: 20px 0 10px 0; font-size: 16px; }}
+            h3 {{ color: #34495e; margin: 15px 0 8px 0; font-size: 14px; }}
+            strong {{ color: #2c3e50; font-weight: bold; }}
+            ul {{ margin: 8px 0; padding-left: 18px; }}
+            li {{ margin: 3px 0; padding-left: 5px; }}
+            p {{ margin: 8px 0; }}
+            .metadata {{ font-size: 11px; color: #666; margin: 15px 0; }}
         </style>
     </head>
     <body>
         {html_summary}
         
-        <div class="separator">
-            <h2>FULL TRANSCRIPT</h2>
-            <div class="transcript">
-                <pre style="white-space: pre-wrap; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4;">{transcript}</pre>
-            </div>
+        <div class="metadata">
+            <p><small>Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}</small></p>
+            <p><small>Source: {os.path.basename(source_filename) if source_filename else 'Audio File'}</small></p>
         </div>
     </body>
     </html>
@@ -639,21 +789,41 @@ def send_email_summary(summary: str, transcript: str, recipient: str, subject: s
     plain_text = f"""
 {summary}
 
-================================================================================
-FULL TRANSCRIPT  
-================================================================================
-
-{transcript}
+Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
+Source: {os.path.basename(source_filename) if source_filename else 'Audio File'}
 """
     
-    msg = MIMEMultipart('alternative')
+    msg = MIMEMultipart('mixed')
     msg['From'] = sender_email
     msg['To'] = recipient
     msg['Subject'] = subject
     
-    # Attach both plain text and HTML versions
-    msg.attach(MIMEText(plain_text, 'plain'))
-    msg.attach(MIMEText(html_body, 'html'))
+    # Create the main message body
+    body = MIMEMultipart('alternative')
+    body.attach(MIMEText(plain_text, 'plain'))
+    body.attach(MIMEText(html_body, 'html'))
+    msg.attach(body)
+    
+    # Create PDF attachment with full content
+    try:
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_pdf:
+            create_pdf_report(summary, transcript, temp_pdf.name, source_filename)
+            
+            # Read the PDF and attach it
+            with open(temp_pdf.name, 'rb') as pdf_file:
+                from email.mime.application import MIMEApplication
+                pdf_attachment = MIMEApplication(pdf_file.read(), _subtype='pdf')
+                pdf_filename = f"{call_title.replace(' ', '_')}.pdf"
+                pdf_attachment.add_header('Content-Disposition', 'attachment', filename=pdf_filename)
+                msg.attach(pdf_attachment)
+            
+            # Clean up temp file
+            os.unlink(temp_pdf.name)
+            
+    except Exception as e:
+        print(f"Warning: Could not create PDF attachment: {e}")
+        # Continue without attachment
     
     try:
         server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -662,7 +832,7 @@ FULL TRANSCRIPT
         text = msg.as_string()
         server.sendmail(sender_email, recipient, text)
         server.quit()
-        print(f"HTML-formatted summary sent to {recipient}")
+        print(f"Summary email sent to {recipient} with PDF attachment")
         return True
     except Exception as e:
         print(f"Failed to send email: {e}")
@@ -675,7 +845,7 @@ def sanitize_filename(s: str) -> str:
     return s[:64]
 
 def extract_title_from_filename(filename: str) -> str:
-    """Extract a clean title from the audio filename"""
+    """Extract a clean title from the audio filename and format as 'Summary of [Name]'"""
     import re
     
     # Get basename without extension
@@ -692,7 +862,11 @@ def extract_title_from_filename(filename: str) -> str:
     title = re.sub(r'\s+', ' ', title).strip()
     title = ' '.join(word.capitalize() for word in title.split())
     
-    return title if title else "Financial Analysis Report"
+    # Format as "Summary of [Name]" 
+    if title:
+        return f"Summary of {title}"
+    else:
+        return "Summary of Financial Call"
 
 def create_pdf_report(summary: str, transcript: str, output_path: str, source_filename: str):
     """Create a professional PDF report with title and formatted sections"""
@@ -932,7 +1106,7 @@ FULL TRANSCRIPT
         
         # Send email if requested
         if args.email:
-            send_email_summary(summary, transcript, args.email, args.subject)
+            send_email_summary(summary, transcript, args.email, args.subject, args.input)
 
     except Exception as e:
         print(f"Error: {e}")
