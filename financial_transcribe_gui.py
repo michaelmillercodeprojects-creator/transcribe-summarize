@@ -4,16 +4,24 @@ Financial Audio Transcription - GUI Application
 Desktop application for transcribing financial audio/video content
 """
 
-import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox, filedialog
-import threading
+# Standard library imports
+import json
+import os
 import queue
 import subprocess
 import sys
-import os
-import json
-from datetime import datetime
+import threading
 import time
+from datetime import datetime
+
+# GUI imports
+import tkinter as tk
+from tkinter import ttk, scrolledtext, messagebox, filedialog
+
+# Email imports (used in test_email_credentials)
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 class FinancialTranscribeGUI:
     def __init__(self, root):
@@ -53,7 +61,10 @@ class FinancialTranscribeGUI:
             "window_geometry": "800x600",
             "openai_api_key": "",
             "email_address": "",
-            "email_password": ""
+            "email_password": "",
+            "vimeo_client_id": "",
+            "vimeo_client_secret": "",
+            "vimeo_access_token": ""
         }
         
         try:
@@ -151,48 +162,8 @@ class FinancialTranscribeGUI:
                                         command=self.toggle_api_key_visibility)
         self.toggle_api_btn.pack(side=tk.RIGHT, padx=(5, 0))
         
-        # Vimeo API credentials section
+        # Separator
         ttk.Separator(api_frame, orient='horizontal').pack(fill=tk.X, pady=(10, 10))
-        ttk.Label(api_frame, text="Vimeo API (for private videos):", font=('Arial', 9, 'bold')).pack(anchor=tk.W, pady=(0, 5))
-        
-        # Vimeo Client ID row
-        vimeo_id_frame = ttk.Frame(api_frame)
-        vimeo_id_frame.pack(fill=tk.X, pady=(0, 8))
-        
-        ttk.Label(vimeo_id_frame, text="Vimeo Client ID:", width=18).pack(side=tk.LEFT)
-        self.vimeo_client_id_var = tk.StringVar(value=self.config.get("vimeo_client_id", ""))
-        self.vimeo_client_id_entry = ttk.Entry(vimeo_id_frame, textvariable=self.vimeo_client_id_var, width=35)
-        self.vimeo_client_id_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
-        
-        # Vimeo Client Secret row
-        vimeo_secret_frame = ttk.Frame(api_frame)
-        vimeo_secret_frame.pack(fill=tk.X, pady=(0, 8))
-        
-        ttk.Label(vimeo_secret_frame, text="Vimeo Client Secret:", width=18).pack(side=tk.LEFT)
-        self.vimeo_client_secret_var = tk.StringVar(value=self.config.get("vimeo_client_secret", ""))
-        self.vimeo_client_secret_entry = ttk.Entry(vimeo_secret_frame, textvariable=self.vimeo_client_secret_var, show="*", width=35)
-        self.vimeo_client_secret_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
-        
-        # Show/Hide Vimeo secret button
-        self.show_vimeo_secret = False
-        self.toggle_vimeo_btn = ttk.Button(vimeo_secret_frame, text="Show", width=6,
-                                          command=self.toggle_vimeo_secret_visibility)
-        self.toggle_vimeo_btn.pack(side=tk.RIGHT, padx=(5, 0))
-        
-        # Vimeo Access Token row (optional for some use cases)
-        vimeo_token_frame = ttk.Frame(api_frame)
-        vimeo_token_frame.pack(fill=tk.X, pady=(0, 8))
-        
-        ttk.Label(vimeo_token_frame, text="Vimeo Access Token:", width=18).pack(side=tk.LEFT)
-        self.vimeo_access_token_var = tk.StringVar(value=self.config.get("vimeo_access_token", ""))
-        self.vimeo_access_token_entry = ttk.Entry(vimeo_token_frame, textvariable=self.vimeo_access_token_var, show="*", width=35)
-        self.vimeo_access_token_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
-        
-        # Show/Hide Vimeo token button
-        self.show_vimeo_token = False
-        self.toggle_vimeo_token_btn = ttk.Button(vimeo_token_frame, text="Show", width=6,
-                                                command=self.toggle_vimeo_token_visibility)
-        self.toggle_vimeo_token_btn.pack(side=tk.RIGHT, padx=(5, 0))
         
         # Output Email row (where reports are sent)
         output_email_frame = ttk.Frame(api_frame)
@@ -246,6 +217,93 @@ class FinancialTranscribeGUI:
         ttk.Checkbutton(email_option_frame, text="Send results via email by default", 
                        variable=self.default_send_email_var).pack(anchor=tk.W)
         
+        # Vimeo Tab
+        vimeo_frame = ttk.Frame(settings_notebook)
+        settings_notebook.add(vimeo_frame, text="Vimeo")
+        
+        # Vimeo API credentials section
+        ttk.Label(vimeo_frame, text="Vimeo API Configuration (for private videos):", font=('Arial', 10, 'bold')).pack(anchor=tk.W, pady=(10, 10))
+        
+        # Instructions
+        instructions_text = """To access private Vimeo videos, you need to create a Vimeo app and get API credentials:
+1. Go to https://developer.vimeo.com/apps
+2. Create a new app
+3. Copy the Client ID and Client Secret below
+4. Generate an access token if needed for specific use cases"""
+        instructions_label = ttk.Label(vimeo_frame, text=instructions_text, font=('Arial', 8), foreground="#666")
+        instructions_label.pack(anchor=tk.W, pady=(0, 15))
+        
+        # Vimeo Client ID row
+        vimeo_id_frame = ttk.Frame(vimeo_frame)
+        vimeo_id_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(vimeo_id_frame, text="Client ID:", width=15).pack(side=tk.LEFT)
+        self.vimeo_client_id_var = tk.StringVar(value=self.config.get("vimeo_client_id", ""))
+        self.vimeo_client_id_entry = ttk.Entry(vimeo_id_frame, textvariable=self.vimeo_client_id_var, width=40)
+        self.vimeo_client_id_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Vimeo Client Secret row
+        vimeo_secret_frame = ttk.Frame(vimeo_frame)
+        vimeo_secret_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(vimeo_secret_frame, text="Client Secret:", width=15).pack(side=tk.LEFT)
+        self.vimeo_client_secret_var = tk.StringVar(value=self.config.get("vimeo_client_secret", ""))
+        self.vimeo_client_secret_entry = ttk.Entry(vimeo_secret_frame, textvariable=self.vimeo_client_secret_var, show="*", width=40)
+        self.vimeo_client_secret_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Show/Hide Vimeo secret button
+        self.show_vimeo_secret = False
+        self.toggle_vimeo_btn = ttk.Button(vimeo_secret_frame, text="Show", width=6,
+                                          command=self.toggle_vimeo_secret_visibility)
+        self.toggle_vimeo_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        
+        # Vimeo Access Token row (optional for some use cases)
+        vimeo_token_frame = ttk.Frame(vimeo_frame)
+        vimeo_token_frame.pack(fill=tk.X, pady=(0, 8))
+        
+        ttk.Label(vimeo_token_frame, text="Access Token:", width=15).pack(side=tk.LEFT)
+        self.vimeo_access_token_var = tk.StringVar(value=self.config.get("vimeo_access_token", ""))
+        self.vimeo_access_token_entry = ttk.Entry(vimeo_token_frame, textvariable=self.vimeo_access_token_var, show="*", width=40)
+        self.vimeo_access_token_entry.pack(side=tk.LEFT, padx=(5, 0), fill=tk.X, expand=True)
+        
+        # Show/Hide Vimeo token button
+        self.show_vimeo_token = False
+        self.toggle_vimeo_token_btn = ttk.Button(vimeo_token_frame, text="Show", width=6,
+                                                command=self.toggle_vimeo_token_visibility)
+        self.toggle_vimeo_token_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        
+        # Test Vimeo button
+        test_vimeo_frame = ttk.Frame(vimeo_frame)
+        test_vimeo_frame.pack(fill=tk.X, pady=(15, 0))
+        
+        test_vimeo_btn = ttk.Button(test_vimeo_frame, text="Test Vimeo Connection", 
+                                   command=self.test_vimeo_credentials)
+        test_vimeo_btn.pack(side=tk.LEFT)
+        
+        # Console Tab
+        console_frame = ttk.Frame(settings_notebook)
+        settings_notebook.add(console_frame, text="Console")
+        
+        # Console text area
+        self.console_text = scrolledtext.ScrolledText(console_frame, height=20, 
+                                                     font=('Consolas', 9),
+                                                     background='#1e1e1e', foreground='#d4d4d4')
+        self.console_text.pack(fill=tk.BOTH, expand=True, pady=(10, 5))
+        
+        # Console controls
+        console_controls = ttk.Frame(console_frame)
+        console_controls.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Button(console_controls, text="Clear Console", 
+                  command=self.clear_console).pack(side=tk.LEFT)
+        ttk.Button(console_controls, text="Save Console Log", 
+                  command=self.save_console_log).pack(side=tk.LEFT, padx=(5, 0))
+        
+        # Initial console message
+        self.console_message("Financial Audio Transcription Console")
+        self.console_message("=" * 40)
+        self.console_message("System initialized and ready for processing")
+        
         # Save settings button (spans both tabs)
         save_settings_frame = ttk.Frame(settings_frame)
         save_settings_frame.pack(fill=tk.X, pady=(10, 0))
@@ -259,12 +317,12 @@ class FinancialTranscribeGUI:
                                    command=self.test_email_credentials)
         test_creds_btn.pack(side=tk.RIGHT, padx=(0, 10))
         
-        # Log Panel
+        # Activity Log Panel (simplified)
         log_frame = ttk.LabelFrame(main_frame, text="Activity Log", padding=10)
         log_frame.pack(fill=tk.BOTH, expand=True)
         
         # Log text area
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=15, 
+        self.log_text = scrolledtext.ScrolledText(log_frame, height=8, 
                                                  font=('Consolas', 9))
         self.log_text.pack(fill=tk.BOTH, expand=True)
         
@@ -276,6 +334,8 @@ class FinancialTranscribeGUI:
                   command=self.clear_log).pack(side=tk.LEFT)
         ttk.Button(log_controls, text="Save Log", 
                   command=self.save_log).pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Label(log_controls, text="View detailed output in Console tab", 
+                 font=('Arial', 8), foreground="#666").pack(side=tk.RIGHT)
         
         # Status bar
         self.status_bar = ttk.Label(self.root, text="Ready to process files and URLs", relief=tk.SUNKEN)
@@ -323,6 +383,16 @@ class FinancialTranscribeGUI:
         
         # Thread-safe logging
         self.log_queue.put(log_entry)
+        
+        # Also log to console (simplified format)
+        try:
+            console_timestamp = datetime.now().strftime("%H:%M:%S")
+            console_entry = f"[{console_timestamp}] {message}\n"
+            self.console_text.insert(tk.END, console_entry)
+            self.console_text.see(tk.END)
+        except:
+            # Console might not be initialized yet
+            pass
     
     def process_log_queue(self):
         """Process log messages from queue (called periodically)"""
@@ -483,10 +553,6 @@ class FinancialTranscribeGUI:
         """Test email credentials by sending a test message"""
         def run_test():
             try:
-                import smtplib
-                from email.mime.text import MIMEText
-                from email.mime.multipart import MIMEMultipart
-                
                 # Update status
                 self.status_label.config(text="Testing Email", foreground="blue")
                 self.status_bar.config(text="Testing email credentials...")
@@ -624,7 +690,6 @@ Configuration:
                     self.log_message(f"Full command: {' '.join(cmd)}")
                     
                     # Use Popen for real-time output streaming
-                    import time
                     self.log_message("Launching subprocess...")
                     
                     try:
@@ -815,13 +880,8 @@ Configuration:
                     missing_deps.append(dep)
                     problems.append(f"MISSING: {dep}: not installed")
             
-            # Additional checks
-            try:
-                import tkinter
-                available_deps.append("tkinter")
-            except ImportError:
-                missing_deps.append("tkinter")
-                problems.append("MISSING: tkinter: not available (install python3-tk)")
+            # Additional checks - tkinter is already imported at top
+            available_deps.append("tkinter")
             
             # Show results
             if missing_deps:
@@ -883,6 +943,75 @@ Version: 2.0
             self.log_message("⚠️ python-dotenv not installed - API key loading may fail")
         
         self.log_message("System check complete\n")
+
+    def console_message(self, message):
+        """Add message to console tab"""
+        try:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            formatted_message = f"[{timestamp}] {message}\n"
+            self.console_text.insert(tk.END, formatted_message)
+            self.console_text.see(tk.END)
+        except Exception as e:
+            # Fallback to regular log if console not available
+            self.log_message(f"Console: {message}")
+
+    def clear_console(self):
+        """Clear console output"""
+        self.console_text.delete(1.0, tk.END)
+        self.console_message("Console cleared")
+
+    def save_console_log(self):
+        """Save console log to file"""
+        try:
+            filename = filedialog.asksaveasfilename(
+                title="Save Console Log",
+                defaultextension=".txt",
+                filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
+            )
+            if filename:
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(self.console_text.get(1.0, tk.END))
+                self.console_message(f"Console log saved to {filename}")
+        except Exception as e:
+            self.console_message(f"Error saving console log: {e}")
+
+    def test_vimeo_credentials(self):
+        """Test Vimeo API credentials"""
+        client_id = self.vimeo_client_id_var.get().strip()
+        client_secret = self.vimeo_client_secret_var.get().strip()
+        
+        if not client_id or not client_secret:
+            messagebox.showerror("Error", "Please enter both Vimeo Client ID and Client Secret")
+            return
+            
+        self.console_message("Testing Vimeo API credentials...")
+        
+        def test_thread():
+            try:
+                import vimeo
+                v = vimeo.VimeoClient(
+                    token=None,
+                    key=client_id,
+                    secret=client_secret
+                )
+                # Test with a simple API call
+                response = v.get('/me')
+                if response.status_code == 200:
+                    self.console_message("✓ Vimeo API credentials are valid")
+                    self.log_message("✓ Vimeo API test successful")
+                    messagebox.showinfo("Success", "Vimeo API credentials are valid!")
+                else:
+                    self.console_message(f"❌ Vimeo API test failed: HTTP {response.status_code}")
+                    messagebox.showerror("Error", f"Vimeo API test failed: HTTP {response.status_code}")
+            except ImportError:
+                self.console_message("❌ PyVimeo not installed. Run: pip install PyVimeo")
+                messagebox.showerror("Error", "PyVimeo not installed. Please install it with: pip install PyVimeo")
+            except Exception as e:
+                self.console_message(f"❌ Vimeo API test failed: {e}")
+                messagebox.showerror("Error", f"Vimeo API test failed: {e}")
+        
+        thread = threading.Thread(target=test_thread, daemon=True)
+        thread.start()
 
     def on_closing(self):
         """Handle window closing"""

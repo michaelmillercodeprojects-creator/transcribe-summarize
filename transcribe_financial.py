@@ -4,27 +4,32 @@
 Financial Audio Transcription Tool
 Optimized for macro themes, trade ideas, and market analysis
 """
+
+# Standard library imports
 import argparse
-import sys
+import mimetypes
 import os
+import sys
+import subprocess
+import tempfile
+import threading
+import time
+import smtplib
+from datetime import datetime
+from typing import Optional
+
+# Email handling
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 
 # Set UTF-8 encoding for Windows console output
 if sys.platform == "win32":
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-import subprocess
-import tempfile
-from typing import Optional
-import mimetypes
-import smtplib
-import imaplib
-import email
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from datetime import datetime
 
+# Third-party imports with error handling
 try:
     import openai
     from dotenv import load_dotenv
@@ -38,7 +43,7 @@ try:
 except ImportError as e:
     print(f"Missing required package: {e}")
     print("Please install required packages:")
-    print("pip install openai python-dotenv requests yt-dlp")
+    print("pip install openai python-dotenv requests yt-dlp reportlab")
     sys.exit(1)
 
 load_dotenv()
@@ -540,7 +545,6 @@ def transcribe_audio(input_path: str, model: str = "whisper-1") -> str:
                     print(f"Uploading chunk {i+1} to OpenAI for transcription... ({file_size:,} bytes)")
                     sys.stdout.flush()
                     
-                    import time, threading
                     start_time = time.time()
                     
                     # Add heartbeat indicator for long-running operations
@@ -676,7 +680,6 @@ Transcript to analyze:
 Generate a content-driven analysis that focuses ONLY on the specific insights and ideas the speakers actually discussed. Skip any categories where they provided no meaningful content."""
 
     try:
-        import time, threading
         print("Sending transcript to GPT for financial analysis...")
         sys.stdout.flush()
         start_time = time.time()
@@ -1038,7 +1041,6 @@ def main():
         
         print("STEP 1: TRANSCRIBING AUDIO...")
         sys.stdout.flush()
-        import time
         step1_start = time.time()
         
         transcript = transcribe_audio(args.input, model=args.transcribe_model)
